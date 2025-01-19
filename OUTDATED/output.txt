@@ -1,0 +1,12 @@
+Macro 0
+Name: DOUBLE
+Body:
+    add r1, r1
+
+    add r1, r1
+
+Macro 1
+Name: HALVE
+Body:
+    sub r1, r1
+

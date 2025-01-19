@@ -1,0 +1,7 @@
+mcro DOUBLE
+    add r1, r1
+    add r1, r1
+mcroend
+mcro HALVE
+    sub r1, r1
+mcroend
