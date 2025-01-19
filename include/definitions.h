@@ -41,25 +41,19 @@
 #define OPCODE_STOP   15
 
 /// ADDRESSING MODES ///
-#define ADDRESS_IMMEDIATE  0  // #value
-#define ADDRESS_DIRECT     1  // label
-#define ADDRESS_RELATIVE   2  // &label
-#define ADDRESS_REGISTER   3  // rX
+#define ADDRESS_IMMEDIATE      0  // #value
+#define ADDRESS_DIRECT         1  // label
+#define ADDRESS_RELATIVE       2  // &label
+#define ADDRESS_REGISTER       3  // rX
 
 /// ERROR CODES ///
-// #define ERROR_NONE                       0
-// #define ERROR_FILE_NOT_FOUND             1
-// #define ERROR_INVALID_OPCODE             2
-// #define ERROR_INVALID_OPERAND            3
-// #define ERROR_MISSING_MACRO_END          4
-// #define ERROR_UNDEFINED_LABEL            5
-// #define ERROR_DUPLICATE_LABEL            6
-// #define ERROR_SYNTAX                     7
-// #define ERROR_MEMORY_ALLOCATION_FAILED   8
+#define STATUS_CATASTROPHIC   -1  // Catasrophic error
+#define STATUS_NO_RESULT       1  // Failure to complete task, no action needed
+#define STATUS_WRONG           2
 
 /// SYMBOL TABLE ///
-#define MAX_SYMBOLS           128
-#define MAX_SYMBOL_NAME       32
+#define MAX_SYMBOLS            128
+#define MAX_SYMBOL_NAME        32
 
 /// OUTPUT FORMATTING ///
 #define WORD_SIZE              24 // Machine word size in bits

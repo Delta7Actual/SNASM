@@ -6,11 +6,11 @@
 #include "../include/preassembler.h"
 #include "../include/encoder.h"
 #include "../include/parser.h"
-#include "../include/writer.h"
+#include "../include/io.h"
 
 int main(void) {
 
-    
 
-    return 0;
+
+    return EXIT_SUCCESS;
 }
