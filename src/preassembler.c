@@ -1,7 +1,7 @@
 #include "../include/preassembler.h"
 #include "../include/parser.h"
 
-int ExpandMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
+int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (file_path == NULL || macros == NULL || macro_count == NULL) return STATUS_CATASTROPHIC;
     FILE *file_fd = fopen(file_path, "r");
     if (file_fd == NULL) return STATUS_CATASTROPHIC;
@@ -20,6 +20,12 @@ int ExpandMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count)
             return STATUS_CATASTROPHIC;
         }
         if (status == STATUS_NO_RESULT) break; // No more Macros
+        // Macro already exists
+        if (FindMacro(curr->name, macros, macro_count) != NULL) {
+            CleanUpMacro(curr);
+            fclose(file_fd);
+            return STATUS_NO_RESULT;
+        }
         macros[*macro_count] = *curr; // Copy struct
         (*macro_count)++;
     }
@@ -28,6 +34,7 @@ int ExpandMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count)
     return 0;
 }
 
+// Copies a macro, frees original macro
 Macro *DeepCopyMacro(Macro *src) {
     if (src == NULL) return NULL;
     Macro *dst = malloc(sizeof(Macro));
@@ -38,9 +45,11 @@ Macro *DeepCopyMacro(Macro *src) {
     dst->name[MAX_MACRO_NAME - 1] = '\0';
     dst->line_count = src->line_count;
 
-    for (int i = 0; i < src->line_count; i++) {
+    for (size_t i = 0; i < src->line_count; i++) {
         strncpy(dst->body[i], src->body[i], MAX_LINE_LENGTH - 1);
         dst->body[i][MAX_LINE_LENGTH - 1] = '\0';
     }
+
+    CleanUpMacro(src);
     return dst;
 }

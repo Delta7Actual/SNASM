@@ -9,7 +9,7 @@
 
 #include "macro.h"
 
-// Returns 0 upon success, -1 upon failure
-int ExpandMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count);
+// Returns 0 upon success, else ERRORCODE
+int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count);
 
 #endif
