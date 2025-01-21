@@ -10,7 +10,7 @@ int main(void) {
     Macro macros[MAX_MACROS] = {0};
     size_t count = 0;
     printf("Expanding macros...\n");
-    int result = ParseMacros("../test/test1.asm", macros, &count);
+    int result = ParseMacros("test/test1.asm", macros, &count);
     if (result != 0) {
         printf("ERROR: ExpandMacros returned %d\n", result);
         return 1;
