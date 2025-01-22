@@ -14,7 +14,7 @@ Macro *FindMacro(char *name, Macro macros[MAX_MACROS], size_t *macro_count) {
 int AddMacro(FILE *file_fd, Macro *macro) {
     if (file_fd == NULL || macro == NULL) return STATUS_CATASTROPHIC;
 
-    char line[MAX_LINE_LENGTH];
+    char line[MAX_LINE_LENGTH] = {0};
     size_t inMacro = 0;
     size_t line_count = 0;
 

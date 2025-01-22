@@ -1,10 +1,14 @@
-mcro START_MACRO
-    line1_of_macro
-    line2_of_macro
-    line3_of_macro
+mcro mcb
+    line1
+    line2
+mcroend 
+
+mcro mcc
+    line3
+    line4
+    line5
 mcroend
 
-mcro ANOTHER_MACRO
-    another_line1
-    another_line2
-mcroend 
+mcb
+-
+mcc

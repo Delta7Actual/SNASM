@@ -18,8 +18,15 @@ int main(void) {
     printf("Macro expansion complete. Count: %zu\n", count);
     printf("----------\n");
     for (size_t i = 0; i < count; i++) {
-        printf("Macro %zu: %s\n", i, macros[i].name);
+        printf("Macro %zu: %s", i, macros[i].name);
+        for (size_t j = 0; j < macros[i].line_count; j++) {
+            printf("%s", macros[i].body[j]);
+        }
     }
+    printf("----------\n");
+    result = ExpandMacros("test/test1.asm", "test/test2.asm", macros, &count);
+    
+    if (result != 0) printf("ERRORSLHASKDJHAS");
 
     printf("Program finished.\n");
     return EXIT_SUCCESS;
