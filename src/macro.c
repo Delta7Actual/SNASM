@@ -17,6 +17,7 @@ int AddMacro(FILE *file_fd, Macro *macro) {
     char line[MAX_LINE_LENGTH] = {0};
     size_t inMacro = 0;
     size_t line_count = 0;
+    
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
         if (!inMacro) {

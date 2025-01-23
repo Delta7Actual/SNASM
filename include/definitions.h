@@ -65,6 +65,14 @@
 #define MACRO_START    "mcro"    // Start of macro
 #define MACRO_END      "mcroend" // End of macro
 
-// TODO: memory limits
+///MEMORY LIMITS///
+#define MAX_TAG_MEMORY 1024
+
+///TAGS///
+#define MAX_LABELS 100
+
+///REGISTERS///
+#define MAX_REGISTER 8
+
 
 #endif // DEFINITIONS_H

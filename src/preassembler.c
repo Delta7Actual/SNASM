@@ -6,6 +6,8 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         file_path == NULL
         || macros == NULL
         || macro_count == NULL) return STATUS_CATASTROPHIC;
+    
+    
 
     FILE *file_fd = fopen(file_path, "r");
     if (file_fd == NULL) return STATUS_CATASTROPHIC;
@@ -18,19 +20,40 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
 
     while (*macro_count < MAX_MACROS) {
         memset(curr, 0, sizeof(*curr));
+
+        //Checks if the name of the macro is a name of an existing command
+        if (curr == NULL) {
+            fclose(file_fd);
+            return STATUS_CATASTROPHIC;
+        }
+
         int status = AddMacro(file_fd, curr);
+
         if (status == STATUS_CATASTROPHIC) {
             free(curr);
             fclose(file_fd);
             return STATUS_CATASTROPHIC;
         }
+
+        
+        
+
         if (status == STATUS_NO_RESULT) break; // No more Macros
+
+
         // Macro already exists
         if (FindMacro(curr->name, macros, macro_count) != NULL) {
             CleanUpMacro(curr);
             fclose(file_fd);
             return STATUS_NO_RESULT;
         }
+
+        if (IsCommandName(curr->name)) {
+            CleanUpMacro(curr);
+            fclose(file_fd);
+            return STATUS_NO_RESULT;
+        }
+
         macros[*macro_count] = *curr; // Copy struct
         (*macro_count)++;
     }
