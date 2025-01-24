@@ -1,6 +1,10 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
+/// GLOBAL INCLUDES ///
+#include <stddef.h>
+#include <stdint.h>
+
 /// FILE DEFINITIONS ///
 #define INPUT_FILE_EXTENSION       ".as"
 #define OBJECT_FILE_EXTENSION      ".ob"

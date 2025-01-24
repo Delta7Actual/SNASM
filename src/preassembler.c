@@ -1,5 +1,4 @@
 #include "../include/preassembler.h"
-#include "../include/parser.h"
 
 int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (
@@ -24,6 +23,12 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
             fclose(file_fd);
             return STATUS_CATASTROPHIC;
         }
+        if (FindCommand(curr->name) != NULL
+        || IsCommentLine(curr->name, strlen(curr->name)) > -1) {
+            CleanUpMacro(curr);
+            fclose(file_fd);
+            return STATUS_CATASTROPHIC;
+        }
         if (status == STATUS_NO_RESULT) break; // No more Macros
         // Macro already exists
         if (FindMacro(curr->name, macros, macro_count) != NULL) {
@@ -41,7 +46,10 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
 }
 
 int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], size_t *macro_count) {
-    if (input_path == NULL || output_path == NULL || macros == NULL || macro_count == NULL) {
+    if (input_path == NULL
+    || output_path == NULL
+    || macros == NULL
+    || macro_count == NULL) {
         return STATUS_CATASTROPHIC;
     }
 

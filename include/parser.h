@@ -5,6 +5,7 @@
 #include <ctype.h>
 
 #include "definitions.h"
+#include "command.h"
 
 // Returns index of char where comment begins, or -1 if no comment
 // Index begins from zero
