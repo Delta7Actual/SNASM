@@ -31,4 +31,7 @@ int AddMacro(FILE *file_fd, Macro *macro);
 // Returns 0 upon success, -1 upon failure
 int CleanUpMacro(Macro *macro);
 
+// Returns a pointer to the name
+char *GetMacroName(char *line);
+
 #endif

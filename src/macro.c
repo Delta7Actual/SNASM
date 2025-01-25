@@ -21,19 +21,8 @@ int AddMacro(FILE *file_fd, Macro *macro) {
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
         if (!inMacro) {
             if (strncmp(line, MACRO_START, strlen(MACRO_START)) == 0) {
-                size_t name_offset = strlen(MACRO_START);
-                size_t name_length = 0;
-
-                // Must separate with at least one space
-                if (!isblank(line[name_offset])) return STATUS_CATASTROPHIC;
-                name_offset++;
-                while (isblank(line[name_offset])) name_offset++;
-                while (!isblank(line[name_offset + name_length]) && name_length < MAX_MACRO_NAME) name_length++;
-
-                // Copy the macro name into macro->name
-                macro->name = strndup(line + name_offset, name_length);
+                macro->name = GetMacroName(line);
                 if (macro->name == NULL) return STATUS_CATASTROPHIC;
-
                 inMacro = 1;  // We are now inside a macro
             }
         }
@@ -62,11 +51,26 @@ int AddMacro(FILE *file_fd, Macro *macro) {
 
 int CleanUpMacro(Macro *macro) {
     if (macro == NULL) return STATUS_CATASTROPHIC;
-
-    free(macro->name);  // Free macro name
+    if (macro->name) free(macro->name);  // Free macro name
     for (size_t i = 0; i < macro->line_count; i++) {
-        free(macro->body[i]);  // Free each line of the body
+        if (macro->body[i]) free(macro->body[i]);  // Free each line of the body
     }
     free(macro);  // Free the macro structure itself
     return 0;
+}
+
+char *GetMacroName(char *line) {
+    if (line == NULL) return NULL;
+    size_t name_offset = strlen(MACRO_START);
+    size_t name_length = 0;
+
+    // Must separate with at least one space
+    if (!isblank(line[name_offset])) return NULL;
+    name_offset++;
+    while (isblank(line[name_offset])) name_offset++;
+    while (!isblank(line[name_offset + name_length]) && name_length < MAX_MACRO_NAME) name_length++;
+    // Copy the macro name into macro->name
+    char *ret = strndup(line + name_offset, name_length);
+    if (ret == NULL) return NULL;
+    return ret;
 }

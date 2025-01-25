@@ -1,8 +1,7 @@
 #include "../include/preassembler.h"
 
 int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
-    if (
-        file_path == NULL
+    if (file_path == NULL
         || macros == NULL
         || macro_count == NULL) return STATUS_CATASTROPHIC;
 
@@ -22,6 +21,11 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
             free(curr);
             fclose(file_fd);
             return STATUS_CATASTROPHIC;
+        }
+        if (status == STATUS_NO_RESULT) {
+            free(curr);
+            fclose(file_fd);
+            return 0;
         }
         if (FindCommand(curr->name) != NULL
         || IsCommentLine(curr->name, strlen(curr->name)) > -1) {
@@ -47,9 +51,9 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
 
 int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (input_path == NULL
-    || output_path == NULL
-    || macros == NULL
-    || macro_count == NULL) {
+        || output_path == NULL
+        || macros == NULL
+        || macro_count == NULL) {
         return STATUS_CATASTROPHIC;
     }
 
@@ -63,11 +67,9 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
     }
 
     char line[MAX_LINE_LENGTH] = {0};
-    Macro *curr = NULL;
+    int in_macro_declaration = 0;  // Tracks if we're inside a macro declaration
 
     while (fgets(line, MAX_LINE_LENGTH, input_fd)) {
-        if (curr) curr = NULL;
-
         // Skip empty lines directly
         if (line[0] == '\n' || line[0] == '\r') {
             if (fprintf(output_fd, "%s", line) < 0) {
@@ -75,6 +77,21 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
                 fclose(output_fd);
                 return STATUS_CATASTROPHIC;
             }
+            continue;
+        }
+
+        if (strncmp(line, MACRO_START, strlen(MACRO_START)) == 0
+        && isspace(line[strlen(MACRO_START)])) {
+            in_macro_declaration = 1;
+            continue;  // Skip this line
+        }
+        // Check for the end of a macro declaration
+        if (in_macro_declaration && strncmp(line, MACRO_END, strlen(MACRO_END)) == 0) {
+            in_macro_declaration = 0;
+            continue;  // Skip this line
+        }
+        // Skip all lines inside a macro declaration
+        if (in_macro_declaration) {
             continue;
         }
 
@@ -92,11 +109,11 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         if (macro_name == NULL) {
             fclose(input_fd);
             fclose(output_fd);
-            return STATUS_CATASTROPHIC; // Memory allocation failed
+            return STATUS_CATASTROPHIC;  // Memory allocation failed
         }
 
-        curr = FindMacro(macro_name, macros, macro_count);
-        free(macro_name); // Free dynamically allocated macro_name
+        Macro *curr = FindMacro(macro_name, macros, macro_count);
+        free(macro_name);  // Free dynamically allocated macro_name
 
         if (curr != NULL) {
             // Found a macro, write its body to the output
@@ -121,6 +138,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
     fclose(output_fd);
     return 0;
 }
+
 
 // Copies a macro, frees original macro
 Macro *DeepCopyMacro(Macro *src) {

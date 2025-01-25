@@ -32,6 +32,6 @@ static const Command commands[] = {
     {"stop", 15, 0, 0}
 };
 
-Command *FindCommand(char *com_name);
+const Command *FindCommand(char *com_name);
 
 #endif
