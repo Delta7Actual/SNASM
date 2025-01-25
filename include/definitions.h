@@ -12,6 +12,9 @@
 #define ENTRIES_FILE_EXTENSION     ".ent"
 #define EXTERNALS_FILE_EXTENSION   ".ext"
 
+#define MAX_FILENAME_LENGTH        128
+#define MAX_EXTENSION_LENGTH       3
+
 /// TESTING DEFINITIONS ///
 #ifdef TEST_MODE
 
