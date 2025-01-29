@@ -1,2 +1,4 @@
-MCRO:   mov r1, r2       ; Invalid macro declaration
+mcro mov       ; Invalid macro declaration
         stop
+
+mov

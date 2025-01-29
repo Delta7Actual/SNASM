@@ -4,6 +4,7 @@
 /// GLOBAL INCLUDES ///
 #include <stddef.h>
 #include <stdint.h>
+#include "logger.h"
 
 /// FILE DEFINITIONS ///
 #define INPUT_FILE_EXTENSION       ".as"
