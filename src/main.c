@@ -23,12 +23,13 @@ int main(int argc, char **argv) {
     }
 
     for (int i = 1; i < argc; i++) {
-        files[i - 1] = strndup(argv[i], strlen(argv[i]));
-        if (files[i - 1] == NULL) {
+        files[i - 1] = malloc(strlen(argv[i]) + 1); // +1 for null terminator
+        if (!files[i - 1]) {
             printf("Error: Failed to allocate memory for file name...\n");
             CleanAndExit(files, i - 1);
             return EXIT_FAILURE;
         }
+        strcpy(files[i - 1], argv[i]);
     }
 
     // Pre-Assemble stage
@@ -49,7 +50,7 @@ void CleanAndExit(char **files, size_t files_size) {
     for (size_t i = 0; i < files_size; i++) {
         if (files[i]) free(files[i]);
     }
-    
+
     free(files);
 }
 
@@ -99,8 +100,7 @@ int GetOutputPath(const char *input_path, char *dst, size_t dst_size) {
 
     // Remove the `.as` extension if it exists
     char trimmed_name[MAX_FILENAME_LENGTH];
-    strncpy(trimmed_name, base_name, sizeof(trimmed_name) - 1);
-    trimmed_name[sizeof(trimmed_name) - 1] = '\0';  // Ensure null-terminated
+    snprintf(trimmed_name, sizeof(trimmed_name), "%s", base_name);
 
     char *extension = strrchr(trimmed_name, '.');
     if (extension && strcmp(extension, ".as") == 0) {
