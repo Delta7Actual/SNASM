@@ -16,7 +16,12 @@ int main(int argc, char **argv) {
     }
 
     // Allocate and copy file names
-    char *files[argc - 1];
+    char **files = malloc((argc - 1) * sizeof(char *));
+    if (!files) {
+        perror("Memory allocation failed");
+        return EXIT_FAILURE;
+    }
+
     for (int i = 1; i < argc; i++) {
         files[i - 1] = strndup(argv[i], strlen(argv[i]));
         if (files[i - 1] == NULL) {
