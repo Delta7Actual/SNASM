@@ -49,6 +49,8 @@ void CleanAndExit(char **files, size_t files_size) {
     for (size_t i = 0; i < files_size; i++) {
         if (files[i]) free(files[i]);
     }
+    
+    free(files);
 }
 
 int PreAssemble(char **files, size_t files_size) {
