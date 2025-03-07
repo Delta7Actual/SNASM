@@ -1,10 +1,10 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra -g
-SRC = src/main.c src/preassembler.c src/parser.c src/encoder.c src/io.c src/macro.c
+SRC = src/main.c src/preassembler.c src/parser.c src/encoder.c src/io.c src/macro.c src/label.c
 INCLUDES = -Iinclude
 OBJDIR = build
-OBJ = $(OBJDIR)/main.o $(OBJDIR)/preassembler.o $(OBJDIR)/parser.o $(OBJDIR)/encoder.o $(OBJDIR)/io.o $(OBJDIR)/macro.o
+OBJ = $(OBJDIR)/main.o $(OBJDIR)/preassembler.o $(OBJDIR)/parser.o $(OBJDIR)/encoder.o $(OBJDIR)/io.o $(OBJDIR)/macro.o $(OBJDIR)/label.o
 
 # Targets
 EXEC = assembler

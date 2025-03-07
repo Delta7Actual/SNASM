@@ -1,16 +1,10 @@
 #include "../include/parser.h"
 #include "../include/macro.h"
+#include "../include/commands.h"
 #include <string.h>
 #include <ctype.h>
 
-#define NUM_COMMANDS (sizeof(operations) / sizeof(operations[0]))
 
-// List of operation names
-const char *operations[] = {
-    "mov", "cmp", "add", "sub", "lea", "clr", 
-    "not", "inc", "dec", "jmp", "bne", "jsr", 
-    "red", "prn", "rts", "stop"
-};
 
 void TrimWhiteSpace(char *str) {
     char *end;
@@ -28,7 +22,7 @@ void TrimWhiteSpace(char *str) {
 
 int IsCommandName(char *macro) {
 
-    if (macro == NULL || macro == NULL) {
+    if (macro == NULL) {
         return 0; // Not a valid macro name
     }
 

@@ -26,19 +26,30 @@
 #define OPCODE_MOV     0
 #define OPCODE_CMP     1
 #define OPCODE_ADD     2
-#define OPCODE_SUB     3
+#define OPCODE_SUB     2
 #define OPCODE_LEA     4
 #define OPCODE_CLR     5
-#define OPCODE_NOT     6
-#define OPCODE_INC     7
-#define OPCODE_DEC     8
+#define OPCODE_NOT     5
+#define OPCODE_INC     5
+#define OPCODE_DEC     5
 #define OPCODE_JMP     9
-#define OPCODE_BNE    10
-#define OPCODE_JSR    11
+#define OPCODE_BNE     9
+#define OPCODE_JSR     9
 #define OPCODE_RED    12
 #define OPCODE_PRN    13
 #define OPCODE_RTS    14
 #define OPCODE_STOP   15
+
+/// FUNCT ///
+#define FUNCT_ADD      1
+#define FUNCT_SUB      2
+#define FUNCT_CLR      1
+#define FUNCT_NOT      2
+#define FUNCT_INC      3
+#define FUNCT_DEC      4
+#define FUNCT_JMP      1
+#define FUNCT_BNE      2
+#define FUNCT_JSR      3
 
 /// ADDRESSING MODES ///
 #define ADDRESS_IMMEDIATE      0  // #value
@@ -69,7 +80,7 @@
 #define MAX_TAG_MEMORY 1024
 
 ///TAGS///
-#define MAX_LABELS 100
+#define MAX_LABELS 128
 
 ///REGISTERS///
 #define MAX_REGISTER 8

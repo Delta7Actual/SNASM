@@ -9,9 +9,9 @@ mcro mcc
     line5
 mcroend
 
-;mcro mov
-    ;line6
-;mcroend
+; mcro mov
+;     line6
+; mcroend
 
 mcc
 

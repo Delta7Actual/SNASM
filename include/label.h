@@ -14,10 +14,9 @@ typedef struct {
     int size;       // Size of the data (number of words)
 } Label;
 
-int memory[MAX_TAG_MEMORY];  // Simulated memory
-Label labels[MAX_LABELS]; // Labels storage
+extern Label labels[MAX_LABELS]; // Labels storage
 
-int label_count = 0;  // Number of labels
+extern int label_count = 0;  // Number of labels
 
 
 

@@ -5,8 +5,13 @@
 #include <stddef.h>
 #include <ctype.h>
 
+#include "commands.h"
 #include "macro.h"
 #include "definitions.h"
+
+#define NUM_COMMANDS (sizeof(operations) / sizeof(operations[0]))
+
+// List of operation names
 
 //Returns 1 if true and 0 if not
 //Checks if the macro's name is an existing command name

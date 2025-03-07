@@ -1,6 +1,16 @@
-#include <../include/tag.h>
+#include <../include/label.h>
 
 
+
+
+Label* DoesLabelExist(char *name){
+    
+    for(int i = 0; i < label_count; i++)
+        if(strcmp(name , labels[i].name) == 0)
+            return &labels[i];
+
+    return NULL;
+}
 
 int add_label(char *name, int *data, int size) {
     if (label_count >= MAX_LABELS) {
