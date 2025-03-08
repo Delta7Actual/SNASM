@@ -1,22 +1,24 @@
 #include "../include/preassembler.h"
 
+char CONTEXT[] = "PreAssembler";
+
 int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (file_path == NULL
         || macros == NULL
         || macro_count == NULL) {
-            LogError("PreAssembly", "ParseMacros", "Received NULL input");
+            LogError(CONTEXT, "ParseMacros", "Received NULL input");
             return STATUS_CATASTROPHIC;
         };
 
     FILE *file_fd = fopen(file_path, "r");
     if (file_fd == NULL) {
-        LogError("PreAssembly", "ParseMacros", "Failed to open file");
+        LogError(CONTEXT, "ParseMacros", "Failed to open file");
         return STATUS_CATASTROPHIC;
     }
 
     Macro *curr = malloc(sizeof(Macro));
     if (curr == NULL) {
-        LogError("PreAssembly", "ParseMacros", "Failed to allocate memory for Macro");
+        LogError(CONTEXT, "ParseMacros", "Failed to allocate memory for Macro");
         fclose(file_fd);
         return STATUS_CATASTROPHIC;
     }
@@ -25,7 +27,7 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         memset(curr, 0, sizeof(*curr));
         int status = AddMacro(file_fd, curr);
         if (status == STATUS_CATASTROPHIC) {
-            LogError("PreAssembly", "ParseMacros", "AddMacro failed");
+            LogError(CONTEXT, "ParseMacros", "AddMacro failed");
             free(curr);
             fclose(file_fd);
             return STATUS_CATASTROPHIC;
@@ -37,7 +39,7 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         }
         if (FindCommand(curr->name) != NULL
         || IsCommentLine(curr->name, strlen(curr->name)) > -1) {
-            LogError("PreAssembly", "ParseMacros", "Invalid macro name");
+            LogError(CONTEXT, "ParseMacros", "Invalid macro name");
             CleanUpMacro(curr);
             fclose(file_fd);
             return STATUS_CATASTROPHIC;
@@ -47,7 +49,7 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         if (FindMacro(curr->name, macros, macro_count) != NULL) {
             CleanUpMacro(curr);
             fclose(file_fd);
-            LogError("PreAssembly", "ParseMacros", "Macro already exists");
+            LogError(CONTEXT, "ParseMacros", "Macro already exists");
             return STATUS_CATASTROPHIC;
         }
         macros[*macro_count] = *curr; // Copy struct
@@ -64,19 +66,19 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         || output_path == NULL
         || macros == NULL
         || macro_count == NULL) {
-        LogError("PreAssembly", "ExpandMacros", "Received NULL input");
+        LogError(CONTEXT, "ExpandMacros", "Received NULL input");
         return STATUS_CATASTROPHIC;
     }
 
     FILE *input_fd = fopen(input_path, "r");
     if (input_fd == NULL) {
-        LogError("PreAssembly", "ExpandMacros", "Failed to open input file");
+        LogError(CONTEXT, "ExpandMacros", "Failed to open input file");
         return STATUS_CATASTROPHIC;
     }
 
     FILE *output_fd = fopen(output_path, "w");
     if (output_fd == NULL) {
-        LogError("PreAssembly", "ExpandMacros", "Failed to open output file");
+        LogError(CONTEXT, "ExpandMacros", "Failed to open output file");
         fclose(input_fd);
         return STATUS_CATASTROPHIC;
     }
@@ -88,7 +90,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         // Skip empty lines directly
         if (line[0] == '\n' || line[0] == '\r') {
             if (fprintf(output_fd, "%s", line) < 0) {
-                LogError("PreAssembly", "ExpandMacros", "Failed to write empty line to output");
+                LogError(CONTEXT, "ExpandMacros", "Failed to write empty line to output");
                 fclose(input_fd);
                 fclose(output_fd);
                 return STATUS_CATASTROPHIC;
@@ -123,7 +125,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         // Extract the first word (potential macro name)
         char *macro_name = strndup(line + start, name_length);
         if (macro_name == NULL) {
-            LogError("PreAssembly", "ExpandMacros", "Failed to allocate memory for macro name");
+            LogError(CONTEXT, "ExpandMacros", "Failed to allocate memory for macro name");
             fclose(input_fd);
             fclose(output_fd);
             return STATUS_CATASTROPHIC;  // Memory allocation failed
@@ -136,7 +138,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
             // Found a macro, write its body to the output
             for (size_t i = 0; i < curr->line_count; i++) {
                 if (fprintf(output_fd, "%s", curr->body[i]) < 0) {
-                    LogError("PreAssembly", "ExpandMacros", "Failed to write macro body to output");
+                    LogError(CONTEXT, "ExpandMacros", "Failed to write macro body to output");
                     fclose(input_fd);
                     fclose(output_fd);
                     return STATUS_CATASTROPHIC;
@@ -145,7 +147,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         } else {
             // Not a macro, write the line as-is
             if (fprintf(output_fd, "%s", line) < 0) {
-                LogError("PreAssembly", "ExpandMacros", "Failed to write line to output");
+                LogError(CONTEXT, "ExpandMacros", "Failed to write line to output");
                 fclose(input_fd);
                 fclose(output_fd);
                 return STATUS_CATASTROPHIC;

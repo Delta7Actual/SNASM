@@ -30,23 +30,23 @@
 /// STANDARD INPUT DEFINITIONS ///
 #define MAX_LINE_LENGTH   128
 
-/// OPCODES ///
-#define OPCODE_MOV     0
-#define OPCODE_CMP     1
-#define OPCODE_ADD     2
-#define OPCODE_SUB     3
-#define OPCODE_LEA     4
-#define OPCODE_CLR     5
-#define OPCODE_NOT     6
-#define OPCODE_INC     7
-#define OPCODE_DEC     8
-#define OPCODE_JMP     9
-#define OPCODE_BNE    10
-#define OPCODE_JSR    11
-#define OPCODE_RED    12
-#define OPCODE_PRN    13
-#define OPCODE_RTS    14
-#define OPCODE_STOP   15
+// /// OPCODES ///
+// #define OPCODE_MOV     0
+// #define OPCODE_CMP     1
+// #define OPCODE_ADD     2
+// #define OPCODE_SUB     3
+// #define OPCODE_LEA     4
+// #define OPCODE_CLR     5
+// #define OPCODE_NOT     6
+// #define OPCODE_INC     7
+// #define OPCODE_DEC     8
+// #define OPCODE_JMP     9
+// #define OPCODE_BNE    10
+// #define OPCODE_JSR    11
+// #define OPCODE_RED    12
+// #define OPCODE_PRN    13
+// #define OPCODE_RTS    14
+// #define OPCODE_STOP   15
 
 /// ADDRESSING MODES ///
 #define ADDRESS_IMMEDIATE      0  // #value
@@ -60,12 +60,11 @@
 #define STATUS_WRONG           2
 
 /// SYMBOL TABLE ///
-#define MAX_SYMBOLS            128
-#define MAX_SYMBOL_NAME        32
+#define MAX_LABELS            128
+#define MAX_LABEL_NAME        31
 
 /// OUTPUT FORMATTING ///
 #define WORD_SIZE              24 // Machine word size in bits
-#define OUTPUT_BASE            6  // Default output base (e.g., base 10)
 
 /// SPECIAL CHARACTERS ///
 #define COMMENT_CHAR   ';'       // For skipping comments
@@ -73,6 +72,8 @@
 #define MACRO_START    "mcro"    // Start of macro
 #define MACRO_END      "mcroend" // End of macro
 
-// TODO: memory limits
+/// MACHINE INFORMATION ///
+#define MEMORY_SIZE (1 << 21) // 2^21 words
+
 
 #endif // DEFINITIONS_H

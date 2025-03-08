@@ -1,10 +1,10 @@
 #include "../include/macro.h"
 
 Macro *FindMacro(char *name, Macro macros[MAX_MACROS], size_t *macro_count) {
-    if (*macro_count == 0 || macro_count == NULL || macros == NULL) return NULL;
+    if (macro_count == NULL || macros == NULL || name == NULL) return NULL;
 
     for (size_t i = 0; i < *macro_count; i++) {
-        if (strncmp(macros[i].name, name, strlen(name)) == 0) {
+        if (strncmp(macros[i].name, name, strlen(macros[i].name)) == 0) {
             return &macros[i];
         }
     }
