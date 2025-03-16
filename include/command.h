@@ -46,14 +46,14 @@ static const Command commands[COMMAND_COUNT] = {
     {"jsr",  S_OF(9,  3), 1, DST_DIR | DST_REL},
     {"red",  S_OF(12, 0), 1, DST_DIR | DST_REG},
     {"prn",  S_OF(13, 0), 1, DST_IMM | DST_DIR | DST_REG},
-    {"rts",  S_OF(14, 0), 0},
-    {"stop", S_OF(15, 0), 0}
+    {"rts",  S_OF(14, 0), 0, 0}, // No operands
+    {"stop", S_OF(15, 0), 0, 0}  // No operands
 };
 
 const Command *FindCommand(char *com_name);
 
 // Does not conform to status codes, change?
 // Returns number of words the command will take, -1 if error
-int ValidateCommand(char *com_line, const Command *comm);
+int ValidateCommand(char *com_line, const Command *comm, Symbol symbols[MAX_LABELS], size_t *symbol_count);
 
 #endif

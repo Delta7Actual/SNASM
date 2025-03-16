@@ -1,0 +1,36 @@
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -Wextra -g
+SRC = src/main.c src/preassembler.c src/parser.c src/encoder.c src/io.c src/macro.c src/command.c src/logger.c src/symbol.c src/winutils.c
+INCLUDES = -Iinclude
+OBJDIR = build
+OBJ = $(OBJDIR)/main.o $(OBJDIR)/preassembler.o $(OBJDIR)/parser.o $(OBJDIR)/encoder.o $(OBJDIR)/io.o $(OBJDIR)/macro.o $(OBJDIR)/command.o $(OBJDIR)/logger.o $(OBJDIR)/symbol.o $(OBJDIR)/winutils.o
+
+# Targets
+EXEC = assembler.exe
+TEST_EXEC = assembler_test
+
+# Default target
+all: $(EXEC)
+
+# Production build
+$(EXEC): $(OBJ)
+	$(CC) $(CFLAGS) -o $(EXEC) $(OBJ)
+
+# Testing build
+test: CFLAGS += -DTEST_MODE
+test: $(OBJ)
+	$(CC) $(CFLAGS) -o $(TEST_EXEC) $(OBJ)
+
+# Object file compilation with modified CFLAGS
+$(OBJDIR)/%.o: src/%.c
+	if not exist $(OBJDIR) mkdir $(OBJDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Clean up build artifacts
+clean:
+	del /Q $(OBJDIR)\*.o $(EXEC) $(TEST_EXEC)
+	if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
+
+# Phony targets
+.PHONY: all test clean

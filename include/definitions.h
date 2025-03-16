@@ -6,6 +6,14 @@
 #include <stdint.h>
 #include "logger.h"
 
+/// GLOBAL WINDOWS FUNCTIONS ///
+#if defined(_WIN32) || defined(_WIN64)
+    #include <string.h>
+    #include <stdlib.h>
+
+    char *strndup(const char *s, size_t n);
+#endif
+
 /// FILE DEFINITIONS ///
 #define INPUT_FILE_EXTENSION       ".as"
 #define OBJECT_FILE_EXTENSION      ".ob"

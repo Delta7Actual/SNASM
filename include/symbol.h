@@ -13,9 +13,9 @@ typedef struct s_symbol {
     char *name;
     size_t address;
     LType type;
-    int defined;
-    int entr;
-    int extr;
+    uint8_t defined;
+    uint8_t entr;
+    uint8_t extr;
 } Symbol;
 
 Symbol *FindSymbol(char *name, Symbol symbols[MAX_LABELS], size_t *symbol_count);

@@ -1,5 +1,6 @@
 build/
 output/
 assembler
+assembler.exe
 .env
 .vscode

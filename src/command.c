@@ -1,5 +1,7 @@
 #include "../include/command.h"
 
+uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size_t *symbol_count);
+
 const Command *FindCommand(char *com_name) {
     if (com_name == NULL) return NULL;
     int l = 0;
