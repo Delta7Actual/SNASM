@@ -68,17 +68,17 @@
 #define STATUS_WRONG           2
 
 /// SYMBOL TABLE ///
-#define MAX_LABELS            128
+#define MAX_LABELS           128
 #define MAX_LABEL_NAME        31
 
 /// OUTPUT FORMATTING ///
-#define WORD_SIZE              24 // Machine word size in bits
+#define WORD_SIZE             24  // Machine word size in bits
 
 /// SPECIAL CHARACTERS ///
-#define COMMENT_CHAR   ';'       // For skipping comments
-#define LABEL_DELIM    ':'       // For labels
-#define MACRO_START    "mcro"    // Start of macro
-#define MACRO_END      "mcroend" // End of macro
+#define COMMENT_CHAR   ';'        // For skipping comments
+#define LABEL_DELIM    ':'        // For labels
+#define MACRO_START    "mcro"     // Start of macro
+#define MACRO_END      "mcroend"  // End of macro
 
 /// MACHINE INFORMATION ///
 #define MEMORY_SIZE (1 << 21) // 2^21 words

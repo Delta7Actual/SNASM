@@ -54,6 +54,6 @@ const Command *FindCommand(char *com_name);
 
 // Does not conform to status codes, change?
 // Returns number of words the command will take, -1 if error
-int ValidateCommand(char *com_line, const Command *comm, Symbol symbols[MAX_LABELS], size_t *symbol_count);
+int ValidateCommand(char *com_line, const Command *comm, Label symbols[MAX_LABELS], size_t *symbol_count);
 
 #endif

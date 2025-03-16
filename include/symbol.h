@@ -16,12 +16,12 @@ typedef struct s_symbol {
     uint8_t defined;
     uint8_t entr;
     uint8_t extr;
-} Symbol;
+} Label;
 
-Symbol *FindSymbol(char *name, Symbol symbols[MAX_LABELS], size_t *symbol_count);
+Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count);
 
-int AddSymbol(FILE *file_fd, Symbol *symbol);
+int AddLabel(FILE *file_fd, Label *symbol);
 
-int CleanUpSymbol(Symbol *symbol);
+int CleanUpLabel(Label *symbol);
 
 #endif

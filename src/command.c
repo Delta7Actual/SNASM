@@ -1,6 +1,6 @@
 #include "../include/command.h"
 
-uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size_t *symbol_count);
+uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count);
 
 const Command *FindCommand(char *com_name) {
     if (com_name == NULL) return NULL;
@@ -19,7 +19,7 @@ const Command *FindCommand(char *com_name) {
 
 // We shouldnt need to pass the symbol table here, should be a better way
 // TODO: Change this
-int ValidateCommand(char *com_line, const Command *comm, Symbol symbols[MAX_LABELS], size_t *symbol_count) {
+int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS], size_t *label_count) {
     if (!com_line || !comm) return STATUS_CATASTROPHIC;
 
     int offset = 0;
@@ -28,22 +28,25 @@ int ValidateCommand(char *com_line, const Command *comm, Symbol symbols[MAX_LABE
     
     while (isspace(com_line[offset])) offset++;
 
-    uint8_t modes = DetermineAddressingModes(com_line, symbols, symbol_count);
-    if (comm->addmodes & modes != modes) return STATUS_CATASTROPHIC; // Missmatched addressing
+    uint8_t modes = DetermineAddressingModes(com_line, labels, label_count);
+    if ((comm->addmodes & modes) != modes) return STATUS_CATASTROPHIC; // Missmatched addressing
     
     int words = 1;
-    while (modes > 0) {
-        modes &= (modes - 1);
-        words++;
+    uint8_t temp = modes;
+    while (temp > 0) {
+        temp &= (temp - 1);
+        temp++;
     }
     if (comm->opcount != words - 1) return STATUS_CATASTROPHIC; // Wrong opcount
-    
-    return words; // 1 word for command + 1 for each operand
+    if (modes & SRC_REG == SRC_REG) words--;
+    if (modes & DST_REG == DST_REG) words--;
+
+    return words; // 1 word for command + 1 for each non register operand
 }
 
 // Returns -1 if syntax error
-uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size_t *symbol_count) {
-    if (!operand || !symbols || !symbol_count) return STATUS_CATASTROPHIC;
+uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
+    if (!operand || !labels || !label_count) return STATUS_CATASTROPHIC;
 
     uint8_t ret = 0;
     int offset = 0;
@@ -63,7 +66,7 @@ uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size
     // Relative
     else if (operand[0] == '&') {
         offset++;
-        Symbol *ref = FindSymbol(operand, symbols, symbol_count);
+        Label *ref = FindLabel(operand, labels, label_count);
         if (!ref) return STATUS_CATASTROPHIC;
         if (ref->extr > 0) return STATUS_CATASTROPHIC;
         offset += strlen(ref->name);
@@ -76,7 +79,7 @@ uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size
     }
     // Either Direct or illegal
     else {
-        Symbol *ref = FindSymbol(operand[offset], symbols, symbol_count);
+        Label *ref = FindLabel(operand + offset, labels, label_count);
         if (!ref) return STATUS_CATASTROPHIC;
         if (ref->type != E_DATA && ref->extr == 0) return STATUS_CATASTROPHIC;
         offset += strlen(ref->name);
@@ -101,7 +104,7 @@ uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size
         // Relative
         else if (operand[offset] == '&') {
             offset++;
-            Symbol *ref = FindSymbol(operand, symbols, symbol_count);
+            Label *ref = FindLabel(operand + offset, labels, label_count);
             if (!ref) return STATUS_CATASTROPHIC;
             if (ref->extr > 0) return STATUS_CATASTROPHIC;
             offset += strlen(ref->name);
@@ -114,7 +117,7 @@ uint8_t DetermineAddressingModes(char *operand, Symbol symbols[MAX_LABELS], size
         }
         // Either Direct or illegal
         else {
-            Symbol *ref = FindSymbol(operand[offset], symbols, symbol_count);
+            Label *ref = FindLabel(operand, labels, label_count);
             if (!ref) return STATUS_CATASTROPHIC;
             if (ref->type != E_DATA && ref->extr == 0) return STATUS_CATASTROPHIC;
             offset += strlen(ref->name);
