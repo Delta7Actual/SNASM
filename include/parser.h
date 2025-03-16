@@ -6,11 +6,12 @@
 
 #include "definitions.h"
 #include "command.h"
+#include "symbol.h"
 
 // Returns index of char where comment begins, or -1 if no comment
 // Index begins from zero
 int IsCommentLine(char *line, size_t line_length);
 
-// TODO: More to come
+
 
 #endif

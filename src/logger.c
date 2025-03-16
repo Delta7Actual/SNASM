@@ -8,5 +8,5 @@ void LogError(char *context, char *func, char *message) {
     FILE *logs = fopen("output/logs.txt", "a");
     if (logs == NULL) printf("--- ERROR IN LOGGER ---\n");
 
-    fprintf(logs, "/// %s : %s -> %s", context, func, message);
+    fprintf(logs, "(-) %s: %s() -> %s", context, func, message);
 }

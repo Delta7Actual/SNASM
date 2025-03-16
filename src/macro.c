@@ -45,7 +45,6 @@ int AddMacro(FILE *file_fd, Macro *macro) {
         }
     }
 
-    // If the loop ends without encountering MACRO_END, it's an error
     return STATUS_NO_RESULT;
 }
 

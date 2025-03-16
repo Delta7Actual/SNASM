@@ -1,5 +1,6 @@
 #include "../include/definitions.h"
 #include "../include/preassembler.h"
+#include "../include/firstpass.h"
 #include "../include/encoder.h"
 #include "../include/parser.h"
 #include "../include/io.h"

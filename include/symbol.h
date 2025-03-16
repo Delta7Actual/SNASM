@@ -7,8 +7,6 @@
 typedef enum e_ltype {
     E_CODE,
     E_DATA,
-    E_ENTR,
-    E_EXTR
 } LType;
 
 typedef struct s_symbol {
