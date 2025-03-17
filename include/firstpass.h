@@ -3,12 +3,16 @@
 
 #include "definitions.h"
 #include "command.h"
-#include "symbol.h"
+#include "label.h"
+#include "parser.h"
 
 #include <string.h>
 #include <stdlib.h>
 
-uint32_t  *IC = 0,  *DC = 0;
-uint32_t *ICF = 0, *DCF = 0;
+uint32_t IC, DC, ICF, DCF;
+
+int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count);
+
+int FormatExtEntFiles(char *file_name, Label labels[MAX_LABELS], size_t *label_count);
 
 #endif

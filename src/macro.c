@@ -12,7 +12,7 @@ Macro *FindMacro(char *name, Macro macros[MAX_MACROS], size_t *macro_count) {
 }
 
 int AddMacro(FILE *file_fd, Macro *macro) {
-    if (file_fd == NULL || macro == NULL) return STATUS_CATASTROPHIC;
+    if (file_fd == NULL || macro == NULL) return STATUS_ERROR;
 
     char line[MAX_LINE_LENGTH] = {0};
     size_t inMacro = 0;
@@ -22,7 +22,7 @@ int AddMacro(FILE *file_fd, Macro *macro) {
         if (!inMacro) {
             if (strncmp(line, MACRO_START, strlen(MACRO_START)) == 0) {
                 macro->name = GetMacroName(line);
-                if (macro->name == NULL) return STATUS_CATASTROPHIC;
+                if (macro->name == NULL) return STATUS_ERROR;
                 inMacro = 1;  // We are now inside a macro
             }
         }
@@ -36,10 +36,10 @@ int AddMacro(FILE *file_fd, Macro *macro) {
             if (line_count < MAX_MACRO_LINES) {
                 // Use strndup to copy line safely
                 char **temp = realloc(macro->body, sizeof(line_count + 1) * sizeof(char *));
-                if (temp == NULL) return STATUS_CATASTROPHIC;
+                if (temp == NULL) return STATUS_ERROR;
                 macro->body = temp;
                 macro->body[line_count] = strndup(line, strlen(line));
-                if (macro->body[line_count] == NULL) return STATUS_CATASTROPHIC;
+                if (macro->body[line_count] == NULL) return STATUS_ERROR;
                 line_count++;
             }
         }
@@ -49,7 +49,7 @@ int AddMacro(FILE *file_fd, Macro *macro) {
 }
 
 int CleanUpMacro(Macro *macro) {
-    if (macro == NULL) return STATUS_CATASTROPHIC;
+    if (macro == NULL) return STATUS_ERROR;
     if (macro->name) free(macro->name);  // Free macro name
     for (size_t i = 0; i < macro->line_count; i++) {
         if (macro->body[i]) free(macro->body[i]);  // Free each line of the body

@@ -20,16 +20,16 @@ const Command *FindCommand(char *com_name) {
 // We shouldnt need to pass the symbol table here, should be a better way
 // TODO: Change this
 int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!com_line || !comm) return STATUS_CATASTROPHIC;
+    if (!com_line || !comm) return STATUS_ERROR;
 
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
-    if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) return STATUS_CATASTROPHIC;
+    if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) return STATUS_ERROR;
     
     while (isspace(com_line[offset])) offset++;
 
     uint8_t modes = DetermineAddressingModes(com_line, labels, label_count);
-    if ((comm->addmodes & modes) != modes) return STATUS_CATASTROPHIC; // Missmatched addressing
+    if ((comm->addmodes & modes) != modes) return STATUS_ERROR; // Missmatched addressing
     
     int words = 1;
     uint8_t temp = modes;
@@ -37,16 +37,16 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
         temp &= (temp - 1);
         temp++;
     }
-    if (comm->opcount != words - 1) return STATUS_CATASTROPHIC; // Wrong opcount
-    if (modes & SRC_REG == SRC_REG) words--;
-    if (modes & DST_REG == DST_REG) words--;
+    if (comm->opcount != words - 1) return STATUS_ERROR; // Wrong opcount
+    if ((modes & SRC_REG) == SRC_REG) words--;
+    if ((modes & DST_REG) == DST_REG) words--;
 
     return words; // 1 word for command + 1 for each non register operand
 }
 
 // Returns -1 if syntax error
 uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!operand || !labels || !label_count) return STATUS_CATASTROPHIC;
+    if (!operand || !labels || !label_count) return STATUS_ERROR;
 
     uint8_t ret = 0;
     int offset = 0;
@@ -55,7 +55,7 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
     if (operand[0] == '#') {
         offset++;
         while (operand[offset]) {
-            if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_CATASTROPHIC;
+            if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
             if (isdigit(operand[offset])) offset++;
             if (operand[offset] == ',') {
                 ret |= SRC_IMM;
@@ -67,8 +67,8 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
     else if (operand[0] == '&') {
         offset++;
         Label *ref = FindLabel(operand, labels, label_count);
-        if (!ref) return STATUS_CATASTROPHIC;
-        if (ref->extr > 0) return STATUS_CATASTROPHIC;
+        if (!ref) return STATUS_ERROR;
+        if (ref->extr > 0) return STATUS_ERROR;
         offset += strlen(ref->name);
         ret |= SRC_REL;
     }
@@ -80,8 +80,8 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
     // Either Direct or illegal
     else {
         Label *ref = FindLabel(operand + offset, labels, label_count);
-        if (!ref) return STATUS_CATASTROPHIC;
-        if (ref->type != E_DATA && ref->extr == 0) return STATUS_CATASTROPHIC;
+        if (!ref) return STATUS_ERROR;
+        if (ref->type != E_DATA && ref->extr == 0) return STATUS_ERROR;
         offset += strlen(ref->name);
         ret |= SRC_DIR;
     }
@@ -93,7 +93,7 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         if (operand[offset] == '#') {
             offset++;
             while (operand[offset]) {
-                if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_CATASTROPHIC;
+                if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
                 if (isdigit(operand[offset])) offset++;
                 if (operand[offset] == ',') {
                     ret |= DST_IMM;
@@ -105,8 +105,8 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         else if (operand[offset] == '&') {
             offset++;
             Label *ref = FindLabel(operand + offset, labels, label_count);
-            if (!ref) return STATUS_CATASTROPHIC;
-            if (ref->extr > 0) return STATUS_CATASTROPHIC;
+            if (!ref) return STATUS_ERROR;
+            if (ref->extr > 0) return STATUS_ERROR;
             offset += strlen(ref->name);
             ret |= DST_REL;
         }
@@ -118,8 +118,8 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         // Either Direct or illegal
         else {
             Label *ref = FindLabel(operand, labels, label_count);
-            if (!ref) return STATUS_CATASTROPHIC;
-            if (ref->type != E_DATA && ref->extr == 0) return STATUS_CATASTROPHIC;
+            if (!ref) return STATUS_ERROR;
+            if (ref->type != E_DATA && ref->extr == 0) return STATUS_ERROR;
             offset += strlen(ref->name);
             ret |= DST_DIR;
         }

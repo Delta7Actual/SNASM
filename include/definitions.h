@@ -56,16 +56,16 @@
 // #define OPCODE_RTS    14
 // #define OPCODE_STOP   15
 
-/// ADDRESSING MODES ///
-#define ADDRESS_IMMEDIATE      0  // #value
-#define ADDRESS_DIRECT         1  // label
-#define ADDRESS_RELATIVE       2  // &label
-#define ADDRESS_REGISTER       3  // rX
+/// INSTRUCTIONS ///
+#define IDATA          ".data"
+#define ISTRING        ".string"
+#define IENTRY         ".entry"
+#define IEXTERN        ".extern"
 
 /// ERROR CODES ///
-#define STATUS_CATASTROPHIC   -1  // Catasrophic error
-#define STATUS_NO_RESULT       1  // Failure to complete task, no action needed
-#define STATUS_WRONG           2
+#define STATUS_ERROR          -1  // Catasrophic error
+#define STATUS_NO_RESULT      -2  // Failure to complete task, no action needed
+#define STATUS_WRONG          -3
 
 /// SYMBOL TABLE ///
 #define MAX_LABELS           128

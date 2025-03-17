@@ -4,8 +4,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "symbol.h"
+
 #include "definitions.h"
+#include "label.h"
 
 typedef struct s_command {
     const char *name;

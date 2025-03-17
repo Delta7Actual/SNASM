@@ -1,9 +1,14 @@
 #include "../include/parser.h"
 
-int IsCommentLine(char *line, size_t line_length) {
-    if (line == NULL) return STATUS_CATASTROPHIC;
-    for (size_t i = 0; i < line_length; i++) {
-        if (line[i] == ';') return i;
-    }
-    return STATUS_CATASTROPHIC;
+char *TrimWhitespace(char *str) {
+    if (!str) return NULL;
+    
+    while (isspace((unsigned char)*str)) str++; // Skip leading spaces
+    if (*str == 0) return str;
+
+    char *end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) end--; // Remove trailing spaces
+    *(end + 1) = '\0'; // Null terminate
+
+    return str;
 }
