@@ -1,6 +1,38 @@
 #include "../include/firstpass.h"
 
+int HandleDataLabel(char *token) {
+    if (!token) return STATUS_ERROR;
 
+    if (strncmp(token, IDATA, strlen(IDATA)) == 0) {
+        if (*token == POS_DELIM || *token == NEG_DELIM) token++;
+        
+        int values = 1;
+        while (token) {
+            if (!isalnum(*token) && *token != ',') return STATUS_ERROR;
+
+            char *token = strtok(token, ",");
+            while (*token) {
+                values++;
+                token = strtok(NULL, ",");
+            }
+        }
+        return values;
+    }
+    if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
+        if (*token != '\"') return STATUS_ERROR;
+        token++;
+
+        int values = 0;
+        while (isalpha(*token) && *token != '\"') {
+            values++;
+            token++;
+        }
+
+        return values;
+    }
+
+    return STATUS_ERROR;
+}
 
 int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count) {
     if (!file_path || !labels || !label_count) return STATUS_ERROR;
@@ -19,7 +51,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         // Handle instructions
 
 
-        // Handle `.entry` and `.extern`
+        // Handle .entry and .extern
         if (strncmp(trimmed, IENTRY, strlen(IENTRY)) == 0) {
             char *entry_label = TrimWhitespace(trimmed + strlen(IENTRY));
             if (!entry_label || *entry_label == '\0') {
@@ -94,7 +126,9 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
         if (curr->type == E_DATA) {
             curr->address = DC;
-        } else {
+            DC += HandleDataLabel(rest); // Forward Data Counter
+        }
+        else {
             curr->address = IC;
             const Command *com = FindCommand(rest);
             if (com) {
@@ -132,6 +166,6 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     return 0;
 }
 
-int FormatExtEntFiles(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
+// int FormatExtEntFiles(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
 
-}
+// }

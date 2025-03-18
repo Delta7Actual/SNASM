@@ -77,6 +77,8 @@
 /// SPECIAL CHARACTERS ///
 #define COMMENT_CHAR   ';'        // For skipping comments
 #define LABEL_DELIM    ':'        // For labels
+#define POS_DELIM      '+'        // For positive numbers
+#define NEG_DELIM      '-'        // For negative numbers
 #define MACRO_START    "mcro"     // Start of macro
 #define MACRO_END      "mcroend"  // End of macro
 
