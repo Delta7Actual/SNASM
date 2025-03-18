@@ -21,7 +21,8 @@ typedef struct s_symbol {
 
 Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count);
 
-int AddLabel(FILE *file_fd, Label *symbol);
+// Only sets name and type
+int AddLabel(char *line, Label *symbol);
 
 int ValidLabelName(char *name);
 

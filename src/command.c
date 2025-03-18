@@ -8,7 +8,8 @@ const Command *FindCommand(char *com_name) {
     int r = COMMAND_COUNT - 1;
     while (l <= r) {
         int mid = (l + r) / 2;
-        int cmp = strcmp(com_name, commands[mid].name);
+        // Just compare relevant characters
+        int cmp = strncmp(com_name, commands[mid].name, strlen(commands[mid].name));
         
         if (cmp == 0) return &commands[mid];
         else if(cmp < 0) r = mid - 1;
