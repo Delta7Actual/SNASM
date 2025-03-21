@@ -1,6 +1,6 @@
 #include "../include/preassembler.h"
 
-char CONTEXT[] = "PreAssembler";
+static char CONTEXT[] = "PreAssembler";
 
 /* 
  * ParseMacros:

@@ -2,6 +2,8 @@
 
 char *TrimWhitespace(char *str) {
     if (!str) return NULL;
+
+    printf("Trimming: %s\n", str);
     
     while (isspace((unsigned char)*str)) str++; // Skip leading spaces
     if (*str == 0) return str;

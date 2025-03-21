@@ -4,6 +4,9 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
 
 const Command *FindCommand(char *com_name) {
     if (com_name == NULL) return NULL;
+
+    printf("FC:%s\n", com_name);
+
     int l = 0;
     int r = COMMAND_COUNT - 1;
     while (l <= r) {
@@ -22,6 +25,8 @@ const Command *FindCommand(char *com_name) {
 // TODO: Change this
 int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS], size_t *label_count) {
     if (!com_line || !comm) return STATUS_ERROR;
+
+    printf("VC:%s\n", com_line);
 
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
@@ -48,6 +53,8 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
 // Returns -1 if syntax error
 uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
     if (!operand || !labels || !label_count) return STATUS_ERROR;
+
+    printf("OP:%s\n", operand);
 
     uint8_t ret = 0;
     int offset = 0;

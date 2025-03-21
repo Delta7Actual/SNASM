@@ -17,12 +17,14 @@ Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count) {
 int AddLabel(char *line, Label *label) {
     if (!line || !label) return STATUS_ERROR;
 
+    char *temp = strndup(line, strlen(line));
+
     // Remove comments
-    char *comment_start = strchr(line, COMMENT_CHAR);
+    char *comment_start = strchr(temp, COMMENT_CHAR);
     if (comment_start) *comment_start = '\0';
 
     // Trim whitespace
-    char *trimmed = TrimWhitespace(line);
+    char *trimmed = TrimWhitespace(temp);
     if (!trimmed || *trimmed == '\0') return STATUS_NO_RESULT; // Empty line
 
     // Check if the line contains a label (ends with ':')
