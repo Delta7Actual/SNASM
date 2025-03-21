@@ -4,7 +4,6 @@
 #include "definitions.h"
 #include "command.h"
 #include "label.h"
-#include "parser.h"
 
 #include <string.h>
 #include <stdlib.h>

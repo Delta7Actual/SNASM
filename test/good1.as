@@ -8,10 +8,11 @@ mcro QUADUP
 mcroend
 
 ; Start of the program
-MAIN: mov r2, r3
+MAIN: mov #5, r3
       DOUBLE
       cmp r2, #5
       stop
       QUADUP
 
-TEST: mov r1, r3
+TEST: .data -13, +4, 9
+.entry MAIN ; Config main as entry

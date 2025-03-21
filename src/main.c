@@ -43,6 +43,13 @@ int main(int argc, char **argv) {
 
     // TEST FOR LABELS
     Label labels[MAX_LABELS] = {0};
+    size_t c = 0;
+    BuildSymbolTable("test/good1.as", labels, &c);
+
+    for (size_t i = 0; i < c; i++) {
+        printf("Label:%s/addr:%07d/entr:%d/type:%s\n",
+            labels[i].name, labels[i].address, labels[i].entr, (labels[i].type == E_CODE) ? "CODE" : "DATA");
+    }
 
     CleanAndExit(files, argc - 1);
     printf("--- PROGRAM END ---\n");
