@@ -62,6 +62,7 @@ int AddLabel(const char *line, Label *label) {
     return 0;
 }
 
+
 LType DetermineLabelType(char *token) {
     if (strncmp(token, ISTRING, strlen(ISTRING)) == 0 
     || strncmp(token, IDATA, strlen(IDATA)) == 0) {

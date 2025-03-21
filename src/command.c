@@ -16,6 +16,8 @@ const Command *FindCommand(char *com_name) {
 int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS], size_t *label_count) {
     if (!com_line || !comm) return STATUS_ERROR;
 
+    printf("VC:%s\n", com_line);
+
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
     if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) {
@@ -43,7 +45,7 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
 // Returns -1 if syntax error
 uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
     if (!operand || !labels || !label_count) return STATUS_ERROR;
-    
+
     uint8_t ret = 0;
     int offset = 0;
 

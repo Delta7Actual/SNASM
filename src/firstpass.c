@@ -1,4 +1,5 @@
 #include "../include/firstpass.h"
+#include "../include/logger.h"
 
 #include "../include/firstpass.h"
 
@@ -20,6 +21,7 @@ int HandleDataLabel(char *token) {
         }
         return values;
     }
+
     if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
         if (*token != '\"') return STATUS_ERROR;
         token++;
@@ -131,7 +133,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
         if (curr->type == E_DATA) {
             curr->address = DC;
-            DC += HandleDataLabel(rest);
+            DC += HandleDataLabel(rest); // Forward Data Counter
         } else {
             curr->address = IC;
             const Command *com = FindCommand(rest);
@@ -170,7 +172,28 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     return 0;
 }
 
-int FormatExtEntFiles(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!file_name || !labels || !label_count) return STATUS_ERROR;
+/* Generates the `.ent` file */
+int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
+    if (!file_name || !labels || !label_count) {
+        LogError(CONTEXT, "FormatEntryFile", "Received NULL input");
+        return STATUS_ERROR;
+    }
+
+    char output_name[MAX_FILENAME_LENGTH] = {0};
+    snprintf(output_name, MAX_FILENAME_LENGTH, "%s%s", file_name, ENTRIES_FILE_EXTENSION);
+
+    FILE *output_fd = fopen(output_name, "w");
+    if (!output_fd) {
+        LogError(CONTEXT, "FormatEntryFile", "Failed to open .ent file");
+        return -1;
+    }
+
+    for (size_t i = 0; i < *label_count; i++) {
+        if (labels[i].entr) {
+            fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
+        }
+    }
+
+    fclose(output_fd);
     return 0;
 }
