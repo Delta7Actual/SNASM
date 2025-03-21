@@ -14,35 +14,46 @@ Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count) {
     return NULL;
 }
 
-int AddLabel(FILE *file_fd, Label *label) {
-    if (!file_fd || !label) return STATUS_ERROR;
+int AddLabel(const char *line, Label *label) {
+    if (!line || !label) return STATUS_ERROR;
 
-    char line[MAX_LINE_LENGTH] = {0};
+    // Create a local copy of the line to avoid modifying the original
+    char line_copy[MAX_LINE_LENGTH];
+    strncpy(line_copy, line, MAX_LINE_LENGTH);
+    line_copy[MAX_LINE_LENGTH - 1] = '\0';  // Ensure null termination
 
-    while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
-        char *comment_start = strchr(line, COMMENT_CHAR);
-        if (comment_start) *comment_start = '\0'; // We dont care about the rest
+    // Remove comments by copying only up to COMMENT_CHAR
+    char *comment_start = strchr(line_copy, COMMENT_CHAR);
+    if (comment_start) *comment_start = '\0';  // Truncate at comment
 
-        char *trimmed = TrimWhitespace(line);
-        if (!trimmed || *trimmed == '\0') continue;
+    // Trim whitespace
+    char *trimmed = TrimWhitespace(line_copy);
+    if (!trimmed || *trimmed == '\0') return STATUS_NO_RESULT;  // No label found
 
-        char *colon = strchr(trimmed, LABEL_DELIM);
-        if (!colon) continue;
+    // Locate colon (`:`) for label declaration
+    char *colon = strchr(trimmed, LABEL_DELIM);
+    if (!colon) return STATUS_NO_RESULT;  // Not a label declaration
 
-        *colon = '\0';
-        char *label_name = TrimWhitespace(trimmed);
-        
-        int name_len = ValidateLabelName(label_name);
-        if (name_len < 0) return STATUS_ERROR;
+    // Extract label name without modifying `line`
+    size_t label_length = colon - trimmed;
+    if (label_length > MAX_LABEL_NAME) return STATUS_ERROR;  // Prevent buffer overflow
 
-        label->name = strndup(label_name, name_len + 1);
-        label->type = DetermineLabelType(colon + 1);
+    char label_name[MAX_LABEL_NAME + 1];
+    strncpy(label_name, trimmed, label_length);
+    label_name[label_length] = '\0';
 
-        return 0;
-    }
-    
-    return STATUS_NO_RESULT;
+    // Validate label name
+    if (ValidateLabelName(label_name) < 0) return STATUS_ERROR;
+
+    // Allocate memory for label name
+    label->name = strndup(label_name, label_length);
+    if (!label->name) return STATUS_ERROR;  // Memory allocation failed
+
+    // Determine label type
+    label->type = DetermineLabelType(colon + 1);
+    return 0;
 }
+
 
 LType DetermineLabelType(char *token) {
     if (strncmp(token, ISTRING, strlen(ISTRING)) == 0 

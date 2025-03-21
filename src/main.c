@@ -41,6 +41,9 @@ int main(int argc, char **argv) {
 
     // Future stages...
 
+    // TEST FOR LABELS
+    Label labels[MAX_LABELS] = {0};
+
     CleanAndExit(files, argc - 1);
     printf("--- PROGRAM END ---\n");
     return EXIT_SUCCESS;

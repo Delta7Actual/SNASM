@@ -6,6 +6,6 @@
 
 #include "definitions.h"
 
-char *TrimWhitespace(char *str);
+//char *TrimWhitespace(char *str);
 
 #endif
