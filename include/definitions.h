@@ -75,7 +75,7 @@
 #define WORD_SIZE             24  // Machine word size in bits
 
 /// SPECIAL CHARACTERS ///
-#define COMMENT_CHAR   ';'        // For skipping comments
+#define COMMENT_DELIM  ';'        // For skipping comments
 #define LABEL_DELIM    ':'        // For labels
 #define POS_DELIM      '+'        // For positive numbers
 #define NEG_DELIM      '-'        // For negative numbers

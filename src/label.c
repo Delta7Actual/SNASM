@@ -14,38 +14,52 @@ Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count) {
     return NULL;
 }
 
-int AddLabel(char *line, Label *label) {
+int AddLabel(const char *line, Label *label) {
     if (!line || !label) return STATUS_ERROR;
 
-    char *temp = strndup(line, strlen(line));
+    // Make a local copy of the line to avoid modifying the original
+    char line_copy[MAX_LINE_LENGTH];
+    strncpy(line_copy, line, MAX_LINE_LENGTH);
+    line_copy[MAX_LINE_LENGTH - 1] = '\0';  // Ensure null termination
 
     // Remove comments
-    char *comment_start = strchr(temp, COMMENT_CHAR);
-    if (comment_start) *comment_start = '\0';
+    char *comment_start = strchr(line_copy, COMMENT_DELIM);
+    if (comment_start) *comment_start = '\0';  // Truncate at comment
 
-    // Trim whitespace
-    char *trimmed = TrimWhitespace(temp);
-    if (!trimmed || *trimmed == '\0') return STATUS_NO_RESULT; // Empty line
+    // Skip leading whitespace manually
+    char *ptr = line_copy;
+    while (isspace((unsigned char)*ptr)) ptr++;  
 
-    // Check if the line contains a label (ends with ':')
-    char *colon = strchr(trimmed, LABEL_DELIM);
-    if (!colon) return STATUS_NO_RESULT; // No label found
+    if (*ptr == '\0') return STATUS_NO_RESULT;  // Empty line
 
-    *colon = '\0'; // Split label from the rest of the line
-    char *label_name = TrimWhitespace(trimmed);
+    // Locate colon (`:`) for label declaration
+    char *colon = strchr(ptr, LABEL_DELIM);
+    if (!colon) return STATUS_NO_RESULT;  // Not a label declaration
+
+    // Find the label name length while ensuring it's valid
+    size_t label_length = colon - ptr;
+    if (label_length == 0 || label_length > MAX_LABEL_NAME) return STATUS_ERROR;  
+
+    // Copy the label name without modifying `line`
+    char label_name[MAX_LABEL_NAME + 1];
+    strncpy(label_name, ptr, label_length);
+    label_name[label_length] = '\0';
 
     // Validate label name
-    int name_len = ValidateLabelName(label_name);
-    if (name_len < 0) return STATUS_ERROR;
+    if (ValidateLabelName(label_name) < 0) return STATUS_ERROR;
 
-    // Store label
-    label->name = strndup(label_name, name_len + 1);
-    if (!label->name) return STATUS_ERROR;
+    // Allocate memory for label name
+    label->name = strndup(label_name, label_length);
+    if (!label->name) return STATUS_ERROR;  // Memory allocation failed
 
-    // Determine label type (CODE or DATA)
-    label->type = DetermineLabelType(colon + 1);
+    // Skip whitespace after the colon to find label type
+    ptr = colon + 1;
+    while (isspace((unsigned char)*ptr)) ptr++;  
+
+    // Determine label type
+    label->type = DetermineLabelType(ptr);
     
-    return 0; // Successfully processed label
+    return 0;
 }
 
 

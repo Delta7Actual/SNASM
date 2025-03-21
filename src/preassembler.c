@@ -43,6 +43,12 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
             break;  // No more macros found in the file
         }
 
+        /* Remove trailing newline if present */
+        size_t name_len = strlen(curr->name);
+        if (name_len > 0 && curr->name[name_len - 1] == '\n') {
+            curr->name[name_len - 1] = '\0';
+        }
+
         /* Validate macro name: ensure it doesn't conflict with any command */
         if (FindCommand(curr->name) != NULL) {
             LogError(CONTEXT, "ParseMacros", "Invalid macro name: conflicts with a command");

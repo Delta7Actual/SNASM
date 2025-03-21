@@ -3,20 +3,10 @@
 uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count);
 
 const Command *FindCommand(char *com_name) {
-    if (com_name == NULL) return NULL;
-
-    printf("FC:%s\n", com_name);
-
-    int l = 0;
-    int r = COMMAND_COUNT - 1;
-    while (l <= r) {
-        int mid = (l + r) / 2;
-        // Just compare relevant characters
-        int cmp = strncmp(com_name, commands[mid].name, strlen(commands[mid].name));
-        
-        if (cmp == 0) return &commands[mid];
-        else if(cmp < 0) r = mid - 1;
-        else l = mid + 1;
+    for (int i = 0; i < COMMAND_COUNT; i++) {
+        if (strncmp(com_name, commands[i].name, strlen(commands[i].name)) == 0) {
+            return &commands[i];
+        }
     }
     return NULL;
 }
@@ -30,18 +20,20 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
 
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
-    if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) return STATUS_ERROR;
+    if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) {
+        return STATUS_ERROR;
+    }
     
     while (isspace(com_line[offset])) offset++;
 
-    uint8_t modes = DetermineAddressingModes(com_line, labels, label_count);
+    uint8_t modes = DetermineAddressingModes(com_line + strlen(comm->name), labels, label_count);
     if ((comm->addmodes & modes) != modes) return STATUS_ERROR; // Missmatched addressing
     
     int words = 1;
     uint8_t temp = modes;
     while (temp > 0) {
         temp &= (temp - 1);
-        temp++;
+        words++;
     }
     if (comm->opcount != words - 1) return STATUS_ERROR; // Wrong opcount
     if ((modes & SRC_REG) == SRC_REG) words--;
@@ -54,13 +46,13 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
 uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
     if (!operand || !labels || !label_count) return STATUS_ERROR;
 
-    printf("OP:%s\n", operand);
-
     uint8_t ret = 0;
     int offset = 0;
 
+    while(isspace(operand[offset])) offset++;
+
     // Immediate
-    if (operand[0] == '#') {
+    if (operand[offset] == '#') {
         offset++;
         while (operand[offset]) {
             if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
@@ -72,7 +64,7 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         }
     }
     // Relative
-    else if (operand[0] == '&') {
+    else if (operand[offset] == '&') {
         offset++;
         Label *ref = FindLabel(operand, labels, label_count);
         if (!ref) return STATUS_ERROR;
@@ -81,7 +73,7 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         ret |= SRC_REL;
     }
     // Register (This one's nice I like this one :D)
-    else if (operand[0] == 'r' && operand[1] >= '0' && operand[1] <= '7') {
+    else if (operand[offset] == 'r' && operand[1] >= '0' && operand[offset + 1] <= '7') {
         offset += 2;
         ret |= SRC_REG;
     }
@@ -94,16 +86,20 @@ uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t
         ret |= SRC_DIR;
     }
 
+    while (isspace(operand[offset])) offset++;
+
     // Second exists -> repeat checks
     if (operand[offset] == ',') {
         offset++;
+        while (isspace(operand[offset])) offset++;
+        
         // Immediate
         if (operand[offset] == '#') {
             offset++;
             while (operand[offset]) {
                 if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
                 if (isdigit(operand[offset])) offset++;
-                if (operand[offset] == ',') {
+                if (operand[offset] == ',' || operand[offset] == '\n') {
                     ret |= DST_IMM;
                     break;
                 }

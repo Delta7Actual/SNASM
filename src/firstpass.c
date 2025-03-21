@@ -1,24 +1,17 @@
 #include "../include/firstpass.h"
 #include "../include/logger.h"
 
-static char CONTEXT[] = "FirstPass";
+#include "../include/firstpass.h"
 
-/* Parses a `.data` or `.string` directive and returns the number of memory words needed */
 int HandleDataLabel(char *token) {
-    if (!token) {
-        LogError(CONTEXT, "HandleDataLabel", "Received NULL token");
-        return STATUS_ERROR;
-    }
+    if (!token) return STATUS_ERROR;
 
     if (strncmp(token, IDATA, strlen(IDATA)) == 0) {
         if (*token == POS_DELIM || *token == NEG_DELIM) token++;
-
+        
         int values = 1;
         while (token) {
-            if (!isalnum(*token) && *token != ',') {
-                LogError(CONTEXT, "HandleDataLabel", "Invalid character in .data directive");
-                return STATUS_ERROR;
-            }
+            if (!isalnum(*token) && *token != ',') return STATUS_ERROR;
 
             char *token = strtok(token, ",");
             while (*token) {
@@ -30,10 +23,7 @@ int HandleDataLabel(char *token) {
     }
 
     if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
-        if (*token != '\"') {
-            LogError(CONTEXT, "HandleDataLabel", "Missing opening quote in .string directive");
-            return STATUS_ERROR;
-        }
+        if (*token != '\"') return STATUS_ERROR;
         token++;
 
         int values = 0;
@@ -45,77 +35,72 @@ int HandleDataLabel(char *token) {
         return values;
     }
 
-    LogError(CONTEXT, "HandleDataLabel", "Unknown directive type");
     return STATUS_ERROR;
 }
 
-/* First pass: builds the symbol table */
 int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!file_path || !labels || !label_count) {
-        LogError(CONTEXT, "BuildSymbolTable", "Received NULL input");
-        return STATUS_ERROR;
-    }
+    if (!file_path || !labels || !label_count) return STATUS_ERROR;
 
     FILE *file_fd = fopen(file_path, "r");
-    if (!file_fd) {
-        LogError(CONTEXT, "BuildSymbolTable", "Failed to open file");
-        return STATUS_ERROR;
-    }
+    if (!file_fd) return STATUS_ERROR;
 
     char line[MAX_LINE_LENGTH] = {0};
-    char *entries[MAX_LABELS]  = {0};
+    char *entries[MAX_LABELS] = {0};
     size_t entry_count = 0;
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
-        printf("L:%s", line);
-        char *trimmed = TrimWhitespace(line);
-        if (!trimmed || *trimmed == '\0') continue; // Skip empty lines
+        // Skip leading spaces manually
+        char *ptr = line;
+        while (isspace((unsigned char)*ptr)) ptr++;
 
-        // Handle .entry directive
-        if (strncmp(trimmed, IENTRY, strlen(IENTRY)) == 0) {
-            char *entry_label = TrimWhitespace(trimmed + strlen(IENTRY));
-            if (!entry_label || *entry_label == '\0') {
-                LogError(CONTEXT, "BuildSymbolTable", "Missing label in .entry directive");
+        if (*ptr == '\0') continue; // Empty or whitespace-only line
+
+        // Handle .entry and .extern directives
+        if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
+            ptr += strlen(IENTRY);
+            while (isspace((unsigned char)*ptr)) ptr++;  // Skip spaces
+
+            if (*ptr == '\0') {
+                printf("Error: Missing label in .entry directive\n");
                 continue;
             }
 
-            Label *existing = FindLabel(entry_label, labels, label_count);
+            Label *existing = FindLabel(ptr, labels, label_count);
             if (existing) {
                 existing->entr = 1;
             } else {
-                LogError(CONTEXT, "BuildSymbolTable", "Undefined .entry label (will check in second pass)");
-                entries[entry_count] = strndup(entry_label, strlen(entry_label));
+                printf("Warning: .entry label %s is not defined in this file (will check in second pass)\n", ptr);
+                entries[entry_count] = strndup(ptr, strlen(ptr));
                 entry_count++;
             }
             continue;
         }
 
-        // Handle .extern directive
-        if (strncmp(trimmed, IEXTERN, strlen(IEXTERN)) == 0) {
-            char *extern_label = TrimWhitespace(trimmed + strlen(IEXTERN));
-            if (!extern_label || *extern_label == '\0') {
-                LogError(CONTEXT, "BuildSymbolTable", "Missing label in .extern directive");
+        if (strncmp(ptr, IEXTERN, strlen(IEXTERN)) == 0) {
+            ptr += strlen(IEXTERN);
+            while (isspace((unsigned char)*ptr)) ptr++;  // Skip spaces
+
+            if (*ptr == '\0') {
+                printf("Error: Missing label in .extern directive\n");
                 continue;
             }
 
-            Label *existing = FindLabel(extern_label, labels, label_count);
+            Label *existing = FindLabel(ptr, labels, label_count);
             if (existing) {
-                LogError(CONTEXT, "BuildSymbolTable", "Label redefined as .extern");
+                printf("Error: Label %s was already defined, but extern was declared!\n", ptr);
                 continue;
             }
 
-            labels[*label_count].name = strndup(extern_label, strlen(extern_label));
+            labels[*label_count].name = strndup(ptr, strlen(ptr));
             labels[*label_count].address = 0;
             labels[*label_count].extr = 1;
             (*label_count)++;
-
             continue;
         }
 
         // Handle Label Definitions
         Label *curr = malloc(sizeof(Label));
         if (!curr) {
-            LogError(CONTEXT, "BuildSymbolTable", "Memory allocation failed for label");
             fclose(file_fd);
             return STATUS_ERROR;
         }
@@ -125,24 +110,23 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             free(curr);
             continue;
         } else if (status == STATUS_ERROR) {
-            LogError(CONTEXT, "BuildSymbolTable", "Error parsing label");
             free(curr);
+            printf("ERROR IN LINE: %s\n", line);
             continue;
         }
 
-        // Process label if found
-        char *rest = strchr(trimmed, ':');
-        printf("line:%s/rest:%s", line, rest);
+        // Locate the colon (`:`) manually
+        char *rest = strchr(ptr, LABEL_DELIM);
         if (!rest) {
-            LogError(CONTEXT, "BuildSymbolTable", "Failed to find colon in label declaration");
-            printf("Trimmed: %s / Line: %s", trimmed, line);
             free(curr);
             return STATUS_ERROR;
         }
-        rest++;
+        rest++;  // Move past the colon
+
+        while (isspace((unsigned char)*rest)) rest++;  // Skip spaces after colon
 
         if (FindLabel(curr->name, labels, label_count) != NULL) {
-            LogError(CONTEXT, "BuildSymbolTable", "Duplicate label definition");
+            printf("Multiple definitions of label: %s!\n", curr->name);
             free(curr);
             continue;
         }
@@ -156,12 +140,12 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             if (com) {
                 int words = ValidateCommand(rest, com, labels, label_count);
                 if (words > 0) {
-                    IC += words; // Forward Instruction Counter
+                    IC += words;
                 } else {
-                    LogError(CONTEXT, "BuildSymbolTable", "Illegal command parameters in label");
+                    printf("Illegal command parameters in label: %s: %s\n", curr->name, rest);
                 }
             } else {
-                LogError(CONTEXT, "BuildSymbolTable", "Invalid command in label definition");
+                printf("Illegal command in label: %s!, %s\n", curr->name, rest);
             }
         }
 
@@ -172,13 +156,13 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         free(curr);
     }
 
-    // Re-check .entry labels
+    // Re-check entries
     for (size_t i = 0; i < entry_count; i++) {
         Label *entry = FindLabel(entries[i], labels, label_count);
         if (!entry) {
-            LogError(CONTEXT, "BuildSymbolTable", "Undefined .entry label in second pass");
+            printf("Error: .entry label %s is not defined in this file!\n", entries[i]);
         } else {
-            entry->entr = 1; // Mark as an entry
+            entry->entr = 1;
         }
 
         free(entries[i]);
