@@ -1,18 +1,26 @@
-mcro DOUBLE
-    add r1, r1
-mcroend
+; file ps.as
 
-mcro QUADUP
-    add r3, r3
-    add r3, r3
-mcroend
+.entry LIST
+MAIN: add r3, LIST
+LOOP: prn #48
 
-; Start of the program
-MAIN: mov #5, r3
-      DOUBLE
-      cmp r2, #5
-      stop
-      QUADUP
+lea W, r6
+inc r6
+mov r3, K
+sub r1, r4
+bne END
+cmp K, #-6
+bne &END
+dec W
 
-TEST: .data -13, +4, 9
-.entry MAIN ; Config main as entry
+.entry MAIN
+jmp &LOOP
+add L3, L3
+END: stop
+
+STR:  .string "abcd"
+LIST: .data 6, -9
+.data -100
+K: .data 31
+
+.extern L3

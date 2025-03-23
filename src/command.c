@@ -1,6 +1,6 @@
 #include "../include/command.h"
 
-uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count);
+int DetermineAddressingModes(char *operand,uint8_t opCount);
 
 const Command *FindCommand(char *com_name) {
     for (int i = 0; i < COMMAND_COUNT; i++) {
@@ -13,24 +13,25 @@ const Command *FindCommand(char *com_name) {
 
 // We shouldnt need to pass the symbol table here, should be a better way
 // TODO: Change this
-int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS], size_t *label_count) {
+int ValidateCommand(char *com_line, const Command *comm) {
     if (!com_line || !comm) return STATUS_ERROR;
-
-    printf("VC:%s\n", com_line);
 
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
     if (strncmp(com_line, comm->name, strlen(comm->name)) != 0) {
         return STATUS_ERROR;
     }
-    
-    while (isspace(com_line[offset])) offset++;
 
-    uint8_t modes = DetermineAddressingModes(com_line + strlen(comm->name), labels, label_count);
+    int modes = DetermineAddressingModes(com_line + strlen(comm->name), comm->opcount);
+    if (modes < 0) {
+        printf("Error in validating operands\n");
+        return STATUS_ERROR;
+    }
+
     if ((comm->addmodes & modes) != modes) return STATUS_ERROR; // Missmatched addressing
     
     int words = 1;
-    uint8_t temp = modes;
+    int temp = modes;
     while (temp > 0) {
         temp &= (temp - 1);
         words++;
@@ -42,91 +43,84 @@ int ValidateCommand(char *com_line, const Command *comm, Label labels[MAX_LABELS
     return words; // 1 word for command + 1 for each non register operand
 }
 
-// Returns -1 if syntax error
-uint8_t DetermineAddressingModes(char *operand, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!operand || !labels || !label_count) return STATUS_ERROR;
+int DetermineAddressingModes(char *operand, uint8_t opCount) {
+    if (!operand || opCount > 2) return STATUS_ERROR;
 
     uint8_t ret = 0;
+    uint8_t ops = 0;
     int offset = 0;
 
-    while(isspace(operand[offset])) offset++;
+    while (isspace(operand[offset])) offset++;
+    
+    if (operand[offset] == '\0') return 0; // No operands (e.g., `stop`)
 
     // Immediate
     if (operand[offset] == '#') {
         offset++;
-        while (operand[offset]) {
-            if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
-            if (isdigit(operand[offset])) offset++;
-            if (operand[offset] == ',') {
-                ret |= SRC_IMM;
-                break;
-            }
-        }
+        if (operand[offset] == NEG_DELIM || operand[offset] == POS_DELIM) offset++;
+        if (isdigit(operand[offset])) {
+            while (isdigit(operand[offset])) offset++;
+        } else return STATUS_ERROR;
+        ops++;
+        ret |= SRC_IMM;
     }
     // Relative
     else if (operand[offset] == '&') {
         offset++;
-        Label *ref = FindLabel(operand, labels, label_count);
-        if (!ref) return STATUS_ERROR;
-        if (ref->extr > 0) return STATUS_ERROR;
-        offset += strlen(ref->name);
+        while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;
+        ops++;
         ret |= SRC_REL;
     }
-    // Register (This one's nice I like this one :D)
-    else if (operand[offset] == 'r' && operand[1] >= '0' && operand[offset + 1] <= '7') {
+    // Register
+    else if (operand[offset] == 'r' && operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
         offset += 2;
+        ops++;
         ret |= SRC_REG;
     }
-    // Either Direct or illegal
+    // Direct
     else {
-        Label *ref = FindLabel(operand + offset, labels, label_count);
-        if (!ref) return STATUS_ERROR;
-        if (ref->type != E_DATA && ref->extr == 0) return STATUS_ERROR;
-        offset += strlen(ref->name);
+        while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;
+        ops++;
         ret |= SRC_DIR;
     }
 
     while (isspace(operand[offset])) offset++;
 
-    // Second exists -> repeat checks
+    // Second operand
     if (operand[offset] == ',') {
         offset++;
         while (isspace(operand[offset])) offset++;
-        
-        // Immediate
+
         if (operand[offset] == '#') {
             offset++;
-            while (operand[offset]) {
-                if (!isdigit(operand[offset]) && operand[offset] != ',') return STATUS_ERROR;
-                if (isdigit(operand[offset])) offset++;
-                if (operand[offset] == ',' || operand[offset] == '\n') {
-                    ret |= DST_IMM;
-                    break;
-                }
-            }
+            if (operand[offset] == NEG_DELIM || operand[offset] == POS_DELIM) offset++;
+            if (isdigit(operand[offset])) {
+                while (isdigit(operand[offset])) offset++;
+            } else return STATUS_ERROR;
+            ops++;
+            ret |= DST_IMM;
         }
-        // Relative
         else if (operand[offset] == '&') {
             offset++;
-            Label *ref = FindLabel(operand + offset, labels, label_count);
-            if (!ref) return STATUS_ERROR;
-            if (ref->extr > 0) return STATUS_ERROR;
-            offset += strlen(ref->name);
+            while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;
+            ops++;
             ret |= DST_REL;
         }
-        // Register (This one's nice I like this one :D)
-        else if (operand[offset] == 'r' && operand[offset+1] >= '0' && operand[offset+1] <= '7') {
+        else if (operand[offset] == 'r' && operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
             offset += 2;
+            ops++;
             ret |= DST_REG;
         }
-        // Either Direct or illegal
         else {
-            Label *ref = FindLabel(operand, labels, label_count);
-            if (!ref) return STATUS_ERROR;
-            if (ref->type != E_DATA && ref->extr == 0) return STATUS_ERROR;
-            offset += strlen(ref->name);
+            while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;
+            ops++;
             ret |= DST_DIR;
         }
+    }
+
+    if (ops != opCount) return STATUS_ERROR;
+    if (ops == 1 && ops == opCount) {
+        ret <<= 4;
     }
 
     return ret;

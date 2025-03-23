@@ -6,14 +6,14 @@
 #include "../include/io.h"
 
 // Function Prototypes
-void CleanAndExit(char **files, size_t files_size);
+void CleanAndExit(char **files, size_t files_size, SymbolTable *symbol_tables, size_t table_count);
 int PreAssemble(char **files, size_t files_size);
-int FirstPass(char **files, size_t files_size);
+int FirstPass(char **files, size_t files_size, SymbolTable **symbol_tables);
 int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension);
 
 int main(int argc, char **argv) {
-    printf("--- PROGRAM START ---\n");
-    
+    printf("(+) PROGRAM START\n");
+
     if (argc < 2) {
         printf("Please input a .as file to be assembled...\n");
         return EXIT_FAILURE;
@@ -30,50 +30,64 @@ int main(int argc, char **argv) {
         files[i - 1] = strdup(argv[i]);
         if (!files[i - 1]) {
             printf("Error: Failed to allocate memory for file name...\n");
-            CleanAndExit(files, i - 1);
+            CleanAndExit(files, i - 1, NULL, 0);
             return EXIT_FAILURE;
         }
     }
 
     // Pre-Assembler Stage
     if (PreAssemble(files, argc - 1) != 0) {
-        CleanAndExit(files, argc - 1);
+        CleanAndExit(files, argc - 1, NULL, 0);
         return EXIT_FAILURE;
     }
 
-    // First Pass Stage
-    if (FirstPass(files, argc - 1) != 0) {
-        CleanAndExit(files, argc - 1);
+    // First Pass Stage - Build Symbol Tables
+    SymbolTable *symbol_tables = NULL;
+    if (FirstPass(files, argc - 1, &symbol_tables) != 0) {
+        CleanAndExit(files, argc - 1, symbol_tables, argc - 1);
         return EXIT_FAILURE;
     }
 
-    // TEST FOR LABELS
-    Label labels[MAX_LABELS] = {0};
-    size_t c = 0;
-    BuildSymbolTable("test/good1.as", labels, &c);
-
-    for (size_t i = 0; i < c; i++) {
-        printf("Label:%s/addr:%07d/entr:%d/type:%s\n",
-            labels[i].name, labels[i].address, labels[i].entr, (labels[i].type == E_CODE) ? "CODE" : "DATA");
+    // Print stored symbol tables for debugging
+    for (int i = 0; i < argc - 1; i++) {
+        printf("(+) Symbol Table for File: %s\n", files[i]);
+        for (size_t j = 0; j < symbol_tables[i].label_count; j++) {
+            printf("(*)    Label: %-8s / Addr: %07d / Entry: %d / Type: %s\n",
+                symbol_tables[i].labels[j].name,
+                symbol_tables[i].labels[j].address,
+                symbol_tables[i].labels[j].entr,
+                (symbol_tables[i].labels[j].type == E_CODE) ? "CODE" : "DATA");
+        }
     }
 
-    CleanAndExit(files, argc - 1);
-    printf("--- PROGRAM END ---\n");
+    // Cleanup and Exit
+    CleanAndExit(files, argc - 1, symbol_tables, argc - 1);
+    printf("(+) PROGRAM END\n");
     return EXIT_SUCCESS;
 }
 
 // Free allocated memory
-void CleanAndExit(char **files, size_t files_size) {
-    printf("--- PROGRAM CLEAN ---\n");
+void CleanAndExit(char **files, size_t files_size, SymbolTable *symbol_tables, size_t table_count) {
+    printf("(+) PROGRAM CLEAN\n");
+
     for (size_t i = 0; i < files_size; i++) {
         if (files[i]) free(files[i]);
     }
     free(files);
+
+    if (symbol_tables) {
+        for (size_t i = 0; i < table_count; i++) {
+            if (symbol_tables[i].labels) {
+                free(symbol_tables[i].labels);
+            }
+        }
+        free(symbol_tables);
+    }
 }
 
 // Pre-Assemble: Expands macros and writes an intermediate .am file
 int PreAssemble(char **files, size_t files_size) {
-    printf("--- PROGRAM PREASSEMBLE ---\n");
+    printf("(+) PROGRAM PREASSEMBLE\n");
 
     Macro macros[MAX_MACROS];
     char output_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH];
@@ -101,35 +115,52 @@ int PreAssemble(char **files, size_t files_size) {
         }
     }
 
-    printf("--- PREASSEMBLE SUCCESS ---\n");
+    printf("(+) PREASSEMBLE SUCCESS\n");
     return 0;
 }
 
-// First Pass: Builds symbol table and creates .ent file
-int FirstPass(char **files, size_t files_size) {
-    printf("--- FIRST PASS START ---\n");
+// First Pass: Builds symbol tables and creates .ent files
+int FirstPass(char **files, size_t files_size, SymbolTable **symbol_tables) {
+    IC = 100;
+    DC = 0;
+    printf("(+) FIRST PASS START / IC: %d DC: %d\n", IC, DC);
+
+    // Allocate memory for symbol tables dynamically
+    *symbol_tables = malloc(files_size * sizeof(SymbolTable));
+    if (!(*symbol_tables)) {
+        perror("Memory allocation failed for symbol tables");
+        return EXIT_FAILURE;
+    }
 
     for (size_t i = 0; i < files_size; i++) {
-        Label labels[MAX_LABELS] = {0};
-        size_t label_count = 0;
-        char ent_output[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH];
+        // Allocate labels dynamically for each symbol table
+        (*symbol_tables)[i].labels = malloc(MAX_LABELS * sizeof(Label));
+        if (!(*symbol_tables)[i].labels) {
+            perror("Memory allocation failed for labels");
+            return EXIT_FAILURE;
+        }
 
-        if (BuildSymbolTable(files[i], labels, &label_count) != 0) {
+        (*symbol_tables)[i].label_count = 0;
+
+        if (BuildSymbolTable(files[i], (*symbol_tables)[i].labels, &(*symbol_tables)[i].label_count) != 0) {
             printf("Error in first pass for file '%s'\n", files[i]);
             return EXIT_FAILURE;
         }
 
+        char ent_output[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH];
         if (GetOutputPath(files[i], ent_output, sizeof(ent_output), ".ent") != 0) {
             printf("Error creating .ent file path for '%s'\n", files[i]);
             continue;
         }
 
-        if (FormatEntryFile(ent_output, labels, &label_count) != 0) {
+        if (FormatEntryFile(ent_output, (*symbol_tables)[i].labels, &(*symbol_tables)[i].label_count) != 0) {
             printf("Error writing .ent file for '%s'\n", files[i]);
         }
+
+        printf("(+) Symbol table stored for file: %s\n", files[i]);
     }
 
-    printf("--- FIRST PASS SUCCESS ---\n");
+    printf("(+) FIRST PASS SUCCESS\n");
     return 0;
 }
 
@@ -144,8 +175,8 @@ int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char
     snprintf(trimmed_name, sizeof(trimmed_name), "%s", base_name);
 
     char *dot = strrchr(trimmed_name, '.');
-    if (dot && strcmp(dot, ".as") == 0) {
-        *dot = '\0';  // Remove .as extension
+    if (dot) {
+        *dot = '\0';  // Remove extension
     }
 
     // Construct the output path with the specified extension

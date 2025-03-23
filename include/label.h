@@ -19,6 +19,11 @@ typedef struct s_symbol {
     uint8_t extr;
 } Label;
 
+typedef struct s_symboltable {
+    Label *labels;
+    size_t label_count;
+} SymbolTable;
+
 Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count);
 
 int AddLabel(const char *line, Label *symbol);

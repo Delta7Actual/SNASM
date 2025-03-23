@@ -3,36 +3,63 @@
 
 #include "../include/firstpass.h"
 
-int HandleDataLabel(char *token) {
+int  HandleDSDirective(char *token) {
     if (!token) return STATUS_ERROR;
 
+    // Skip leading spaces
+    while (isspace((unsigned char)*token)) token++;
+
+    // Handling .data directive
     if (strncmp(token, IDATA, strlen(IDATA)) == 0) {
-        if (*token == POS_DELIM || *token == NEG_DELIM) token++;
-        
-        int values = 1;
-        while (token) {
-            if (!isalnum(*token) && *token != ',') return STATUS_ERROR;
-
-            char *token = strtok(token, ",");
-            while (*token) {
-                values++;
-                token = strtok(NULL, ",");
-            }
-        }
-        return values;
-    }
-
-    if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
-        if (*token != '\"') return STATUS_ERROR;
-        token++;
+        token += strlen(IDATA);
+        while (isspace((unsigned char)*token)) token++;  // Skip spaces after ".data"
 
         int values = 0;
-        while (isalpha(*token) && *token != '\"') {
+        int expect_number = 1;  // Expecting a number first
+
+        while (*token != '\n' && *token != '\0') {
+            if (isdigit(*token) || (*token == POS_DELIM || *token == NEG_DELIM)) {
+                if (*token == POS_DELIM || *token == NEG_DELIM) {  
+                    token++;  // Move past sign
+                    if (!isdigit(*token)) return STATUS_ERROR;  // Sign must be followed by a number
+                }
+
+                values++;  // Count valid numbers
+                expect_number = 0;  // Now expecting a comma or end
+
+                while (isdigit(*token)) token++;  // Skip full number
+                while (isspace((unsigned char)*token)) token++;  // Skip spaces
+            } 
+            else if (*token == ',') {
+                if (expect_number) return STATUS_ERROR;  // Invalid if ",," or leading ","
+                expect_number = 1;  // Now expecting a number
+                token++;  // Move past comma
+                while (isspace((unsigned char)*token)) token++;  // Skip spaces
+            } 
+            else {
+                return STATUS_ERROR;  // Unexpected character
+            }
+        }
+
+        return expect_number ? STATUS_ERROR : values;  // Ensure last token was valid
+    }
+
+    // Handling .string directive
+    if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
+        token += strlen(ISTRING);
+        while (isspace((unsigned char)*token)) token++;  // Skip spaces after ".string"
+
+        if (*token != '\"') return STATUS_ERROR;  // Ensure opening quote
+        token++;  // Skip opening quote
+
+        int values = 0;
+        while (*token && *token != '\"') {  // Read until closing quote
             values++;
             token++;
         }
 
-        return values;
+        if (*token != '\"') return STATUS_ERROR;  // Ensure closing quote exists
+        return values + 1;  // +1 for null terminator
     }
 
     return STATUS_ERROR;
@@ -69,9 +96,9 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             if (existing) {
                 existing->entr = 1;
             } else {
-                printf("Warning: .entry label %s is not defined in this file (will check in second pass)\n", ptr);
-                entries[entry_count] = strndup(ptr, strlen(ptr));
+                entries[entry_count] = strndup(ptr, strlen(ptr)-1);
                 entry_count++;
+                printf("(-) .entry label not defined (Will check in second pass) -> %s\n", entries[entry_count-1]);
             }
             continue;
         }
@@ -91,6 +118,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 continue;
             }
 
+            memset(&labels[*label_count], 0, sizeof(Label));
             labels[*label_count].name = strndup(ptr, strlen(ptr));
             labels[*label_count].address = 0;
             labels[*label_count].extr = 1;
@@ -104,10 +132,42 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             fclose(file_fd);
             return STATUS_ERROR;
         }
+        memset(curr, 0, sizeof(Label));
 
         int status = AddLabel(line, curr);
         if (status == STATUS_NO_RESULT) {
+            // No label, either DS directives or instructions
             free(curr);
+            
+            // Handle `.data` and `.string` directives
+            if (strncmp(line, ISTRING, strlen(ISTRING)) == 0
+            || strncmp(line, IDATA, strlen(IDATA)) == 0) {
+                int values = HandleDSDirective(line);
+                if (values < 0) {
+                    printf("Error in size calculation in line: %s\n", line);
+                    continue;
+                }
+                DC += values;
+            }
+            else { // Instruction or comment
+                int offset = 0;
+                while(isspace(line[offset])) offset++;
+                if (line[offset] == COMMENT_DELIM) continue;
+
+                const Command *com = FindCommand(line);
+                if (!com) {
+                    printf("Error parsing instruction in line: %s\n", line);
+                    continue;
+                }
+
+                int words = ValidateCommand(line, com);
+                if (words < 0) {
+                    printf("Error in size calculation in line: %s\n", line);
+                    continue;
+                }
+                IC += words;
+            }
+            // Continue to next line
             continue;
         } else if (status == STATUS_ERROR) {
             free(curr);
@@ -118,6 +178,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         // Locate the colon (`:`) manually
         char *rest = strchr(ptr, LABEL_DELIM);
         if (!rest) {
+            printf("Error, malformed label in line: %s\n", line);
             free(curr);
             return STATUS_ERROR;
         }
@@ -133,12 +194,14 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
         if (curr->type == E_DATA) {
             curr->address = DC;
-            DC += HandleDataLabel(rest); // Forward Data Counter
+            int values =  HandleDSDirective(rest);
+            if (values < 0) printf("Error calculating data size for label %s!, %s\n", curr->name, rest);
+            else DC += values;
         } else {
             curr->address = IC;
             const Command *com = FindCommand(rest);
             if (com) {
-                int words = ValidateCommand(rest, com, labels, label_count);
+                int words = ValidateCommand(rest, com);
                 if (words > 0) {
                     IC += words;
                 } else {
@@ -174,20 +237,11 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
 /* Generates the `.ent` file */
 int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!file_name || !labels || !label_count) {
-        LogError(CONTEXT, "FormatEntryFile", "Received NULL input");
-        return STATUS_ERROR;
-    }
+    if (!file_name || !labels || !label_count) return STATUS_ERROR;
 
-    char output_name[MAX_FILENAME_LENGTH] = {0};
-    snprintf(output_name, MAX_FILENAME_LENGTH, "%s%s", file_name, ENTRIES_FILE_EXTENSION);
-
-    FILE *output_fd = fopen(output_name, "w");
-    if (!output_fd) {
-        LogError(CONTEXT, "FormatEntryFile", "Failed to open .ent file");
-        return -1;
-    }
-
+    FILE *output_fd = fopen(file_name, "w");
+    if (!output_fd) return -1;
+    
     for (size_t i = 0; i < *label_count; i++) {
         if (labels[i].entr) {
             fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
