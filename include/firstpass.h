@@ -12,6 +12,10 @@ uint32_t IC, DC, ICF, DCF;
 
 int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count);
 
+int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count);
+
 int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count);
+
+int FormatExternalFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count);
 
 #endif

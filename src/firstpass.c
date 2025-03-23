@@ -73,7 +73,9 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
     char line[MAX_LINE_LENGTH] = {0};
     char *entries[MAX_LABELS] = {0};
+    char *externals[MAX_LABELS] = {0};
     size_t entry_count = 0;
+    size_t extern_count = 0;
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
         // Skip leading spaces manually
@@ -94,11 +96,20 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
             Label *existing = FindLabel(ptr, labels, label_count);
             if (existing) {
-                existing->entr = 1;
+                int isExternInFile = 0;
+                for (size_t i = 0; i < extern_count; i++) {
+                    if (strncmp(existing->name, externals[i], strlen(existing->name)) == 0) {
+                        printf("(-) Label cannot be defined as both extern and entry in the same file! -> %s"
+                            , existing->name);
+                        isExternInFile = 1;
+                        break;
+                    }
+                }
+                if (isExternInFile == 0) existing->extr = 1;
             } else {
                 entries[entry_count] = strndup(ptr, strlen(ptr)-1);
                 entry_count++;
-                printf("(-) .entry label not defined (Will check in second pass) -> %s\n", entries[entry_count-1]);
+                printf("\n(*) .entry label not defined (Will check in second pass) -> %s\n\n", entries[entry_count-1]);
             }
             continue;
         }
@@ -123,6 +134,10 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             labels[*label_count].address = 0;
             labels[*label_count].extr = 1;
             (*label_count)++;
+
+            externals[extern_count] = strndup(ptr, strlen(ptr));
+            extern_count++;
+
             continue;
         }
 
@@ -235,6 +250,12 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     return 0;
 }
 
+int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
+    if (!labels || !label_count) return STATUS_ERROR;
+
+
+}
+
 /* Generates the `.ent` file */
 int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
     if (!file_name || !labels || !label_count) return STATUS_ERROR;
@@ -244,6 +265,23 @@ int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_cou
     
     for (size_t i = 0; i < *label_count; i++) {
         if (labels[i].entr) {
+            fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
+        }
+    }
+
+    fclose(output_fd);
+    return 0;
+}
+
+/* Generates the `.ext` file */
+int FormatExternalFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
+    if (!file_name || !label_count || !label_count) return STATUS_ERROR;
+
+    FILE *output_fd = fopen(file_name, "w");
+    if (!output_fd) return -1;
+    
+    for (size_t i = 0; i < *label_count; i++) {
+        if (labels[i].extr) {
             fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
         }
     }
