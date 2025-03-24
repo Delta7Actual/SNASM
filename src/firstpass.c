@@ -253,7 +253,16 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
     if (!labels || !label_count) return STATUS_ERROR;
 
+    int status = 0;
+    for (size_t i = 0; i < *label_count; i++) {
+        if (labels[i].entr != labels[i].extr) {
+            status = -1;
+            printf("\n(-) Illegal label: Failed to find matching %s for label %s in program!\n\n", 
+            (labels[i].entr == 0) ? ".entry" : ".extern", labels[i].name);
+        }
+    }
 
+    return status;
 }
 
 /* Generates the `.ent` file */

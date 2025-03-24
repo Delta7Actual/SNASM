@@ -97,6 +97,7 @@ int PreAssemble(char **files, size_t files_size) {
 
 // First Pass: Builds symbol table and creates .ent file
 int FirstPass(char **files, size_t files_size) {
+    IC = 100;
     printf("(+) FIRST PASS START | IC:%d/DC:%d\n", IC, DC);
 
     Label labels[MAX_LABELS] = {0};
@@ -132,18 +133,22 @@ int FirstPass(char **files, size_t files_size) {
         printf("(+) Externals file successfully written for file: '%s'\n", files[i]);
     }
 
-    printf("(+) Displaying symbol table");
+    if (ValidateSymbolTable(labels, &label_count) < 0) {
+        printf("\n(-) Generated symbol table failed validation!\n\n");
+    }
+    
+    printf("(+) Displaying symbol table\n");
     for (size_t i = 0; i < label_count; i++) {
-        printf("(*) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n    |Label:%-8s|Addr:%07d|Entry:%d|Extern:%d|Type:%s|\n",
+        printf("(*) --------------------------------------------------------\n    |Label:%-8s|Addr:%07d|Entry:%d|Extern:%d|Type:%s|\n",
             labels[i].name,
             labels[i].address,
             labels[i].entr,
             labels[i].extr,
             (labels[i].type == E_CODE) ? "CODE" : "DATA");
         }
-        printf("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("    --------------------------------------------------------\n");
         
-    printf("(+) FIRST PASS SUCCESS | DC:%d/IC:%d\n", IC, DC);
+    printf("(+) FIRST PASS SUCCESS | IC:%d/DC:%d\n", IC, DC);
     ICF = IC;
     DCF = DC;
     return 0;
