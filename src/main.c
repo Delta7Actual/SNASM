@@ -133,9 +133,11 @@ int FirstPass(char **files, size_t files_size) {
         printf("(+) Externals file successfully written for file: '%s'\n", files[i]);
     }
 
+    ICF = IC;
     if (ValidateSymbolTable(labels, &label_count) < 0) {
         printf("\n(-) Generated symbol table failed validation!\n\n");
     }
+    DCF = DC;
     
     printf("(+) Displaying symbol table\n");
     for (size_t i = 0; i < label_count; i++) {
@@ -149,8 +151,6 @@ int FirstPass(char **files, size_t files_size) {
         printf("    --------------------------------------------------------\n");
         
     printf("(+) FIRST PASS SUCCESS | IC:%d/DC:%d\n", IC, DC);
-    ICF = IC;
-    DCF = DC;
     return 0;
 }
 

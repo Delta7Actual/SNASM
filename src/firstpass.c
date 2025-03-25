@@ -257,9 +257,10 @@ int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
     for (size_t i = 0; i < *label_count; i++) {
         if (labels[i].entr != labels[i].extr) {
             status = -1;
-            printf("\n(-) Illegal label: Failed to find matching %s for label %s in program!\n\n", 
+            printf("\n(*) Warning: Failed to find matching %s for label %s in program!\n\n", 
             (labels[i].entr == 0) ? ".entry" : ".extern", labels[i].name);
         }
+        if (labels[i].type == E_DATA) labels[i].address += ICF;
     }
 
     return status;
