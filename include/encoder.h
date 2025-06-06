@@ -2,9 +2,9 @@
 #define ENCODER_H
 
 #include "definitions.h"
+#include <string.h>
+#include <ctype.h>
 
-typedef struct s_word {
-    int body : 24;
-} Word;
+
 
 #endif

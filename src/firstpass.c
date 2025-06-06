@@ -78,6 +78,9 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     size_t extern_count = 0;
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
+
+        printf("(*) Curr: IC->%d, DC->%d -- Line: %s\n", IC, DC, line);
+
         // Skip leading spaces manually
         char *ptr = line;
         while (isspace((unsigned char)*ptr)) ptr++;

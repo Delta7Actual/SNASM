@@ -1,6 +1,7 @@
 ; file ps.as
 
 .entry LIST
+.extern W
 MAIN: add r3, LIST
 LOOP: prn #48
 
@@ -15,6 +16,7 @@ dec W
 
 .entry MAIN
 jmp &LOOP
+add L3, L3
 END: stop
 
 STR:  .string "abcd"
