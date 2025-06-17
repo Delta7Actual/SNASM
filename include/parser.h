@@ -3,9 +3,10 @@
 
 #include <stddef.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "definitions.h"
 
-//char *TrimWhitespace(char *str);
+char *TrimWhitespace(char *str);
 
 #endif

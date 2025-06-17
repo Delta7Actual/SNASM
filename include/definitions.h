@@ -3,6 +3,7 @@
 
 /// GLOBAL INCLUDES ///
 #include <stddef.h>
+#include <assert.h>
 #include <stdint.h>
 #include "logger.h"
 

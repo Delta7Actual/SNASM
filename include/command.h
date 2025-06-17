@@ -56,5 +56,6 @@ const Command *FindCommand(char *com_name);
 // Does not conform to status codes, change?
 // Returns number of words the command will take, -1 if error
 int ValidateCommand(char *com_line, const Command *comm);
+int DetermineAddressingModes(char *operand, uint8_t opCount);
 
 #endif

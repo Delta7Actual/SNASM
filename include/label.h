@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "definitions.h"
 #include "parser.h"
 
