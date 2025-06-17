@@ -1,7 +1,13 @@
 #include "../include/firstpass.h"
 #include "../include/logger.h"
+#include "../include/parser.h" // Ensure TrimWhitespace is available
 
 #include "../include/firstpass.h"
+
+uint32_t IC  = 0;
+uint32_t DC  = 0;
+uint32_t ICF = 0;
+uint32_t DCF = 0;
 
 int  HandleDSDirective(char *token) {
     if (!token) return STATUS_ERROR;
@@ -97,7 +103,8 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 continue;
             }
 
-            Label *existing = FindLabel(ptr, labels, label_count);
+            char *entry_label = TrimWhitespace(ptr);
+            Label *existing = FindLabel(entry_label, labels, label_count);
             if (existing) {
                 int isExternInFile = 0;
                 for (size_t i = 0; i < extern_count; i++) {
@@ -107,10 +114,11 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                         isExternInFile = 1;
                         break;
                     }
-                }
-                if (isExternInFile == 0) existing->extr = 1;
+                } 
+                
+                if (!isExternInFile) existing->entr = 1;
             } else {
-                entries[entry_count] = strndup(ptr, strlen(ptr)-1);
+                entries[entry_count] = strdup(entry_label);
                 entry_count++;
                 printf("\n(*) .entry label not defined (Will check in second pass) -> %s\n\n", entries[entry_count-1]);
             }
@@ -126,19 +134,20 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 continue;
             }
 
-            Label *existing = FindLabel(ptr, labels, label_count);
+            char *extern_label = TrimWhitespace(ptr);
+            Label *existing = FindLabel(extern_label, labels, label_count);
             if (existing) {
-                printf("Error: Label %s was already defined, but extern was declared!\n", ptr);
+                printf("Error: Label %s was already defined, but extern was declared!\n", extern_label);
                 continue;
             }
 
             memset(&labels[*label_count], 0, sizeof(Label));
-            labels[*label_count].name = strndup(ptr, strlen(ptr));
+            labels[*label_count].name = strdup(extern_label);
             labels[*label_count].address = 0;
             labels[*label_count].extr = 1;
             (*label_count)++;
 
-            externals[extern_count] = strndup(ptr, strlen(ptr));
+            externals[extern_count] = strdup(extern_label);
             extern_count++;
 
             continue;
@@ -267,38 +276,4 @@ int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
     }
 
     return status;
-}
-
-/* Generates the `.ent` file */
-int FormatEntryFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!file_name || !labels || !label_count) return STATUS_ERROR;
-
-    FILE *output_fd = fopen(file_name, "w");
-    if (!output_fd) return -1;
-    
-    for (size_t i = 0; i < *label_count; i++) {
-        if (labels[i].entr) {
-            fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
-        }
-    }
-
-    fclose(output_fd);
-    return 0;
-}
-
-/* Generates the `.ext` file */
-int FormatExternalFile(char *file_name, Label labels[MAX_LABELS], size_t *label_count) {
-    if (!file_name || !label_count || !label_count) return STATUS_ERROR;
-
-    FILE *output_fd = fopen(file_name, "w");
-    if (!output_fd) return -1;
-    
-    for (size_t i = 0; i < *label_count; i++) {
-        if (labels[i].extr) {
-            fprintf(output_fd, "%s: %07d\n", labels[i].name, labels[i].address);
-        }
-    }
-
-    fclose(output_fd);
-    return 0;
 }
