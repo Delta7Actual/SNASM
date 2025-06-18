@@ -74,6 +74,7 @@
 
 /// OUTPUT FORMATTING ///
 #define WORD_SIZE             24  // Machine word size in bits
+#define WORD(x) (x & 0xFFFFFF)
 
 /// SPECIAL CHARACTERS ///
 #define COMMENT_DELIM  ';'        // For skipping comments

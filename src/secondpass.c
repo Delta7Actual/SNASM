@@ -2,7 +2,7 @@
 
 uint32_t curr_address = 100;
 
-int EncodeFile(char *input_path, char *output_path, char *ext_path, Label *labels, size_t *label_count, uint32_t icf, uint32_t dcf) {
+int EncodeFile(char *input_path, char *output_path, char *extern_path, char *entry_path, Label *labels, size_t *label_count, uint32_t icf, uint32_t dcf) {
     printf("(+) ENCODEFILE START: input='%s', output='%s', icf=%u, dcf=%u\n", input_path, output_path, icf, dcf);
     if (!input_path || !output_path || !labels || !label_count) return STATUS_ERROR;
 
@@ -21,20 +21,44 @@ int EncodeFile(char *input_path, char *output_path, char *ext_path, Label *label
     }
     printf("(*) Opened output file: %s\n", output_path);
 
-    FILE *extern_fd = fopen(ext_path, "w");
+    FILE *extern_fd = fopen(extern_path, "w");
     if (!extern_fd) {
-        printf("(-) Failed to open extern file: %s\n", ext_path);
+        printf("(-) Failed to open extern file: %s\n", extern_path);
+        fclose(input_fd);
+        fclose(output_fd);
+        return STATUS_ERROR;
+    }
+    printf("(*) Opened extern file: %s\n", extern_path);
+
+    FILE *entry_fd = fopen(entry_path, "w");
+    if (!entry_fd) {
+        printf("(-) Failed to open entry file: %s\n", entry_path);
+        fclose(input_fd);
+        fclose(output_fd);
         fclose(extern_fd);
         return STATUS_ERROR;
     }
-    printf("(*) Opened extern file: %s\n", ext_path);
+    printf("(*) Opened entry file: %s\n", entry_path);
 
     fprintf(output_fd, "%u | %u\n", icf-100, dcf);
     printf("(*) Wrote header to output: %u | %u\n", icf, dcf);
 
+    // Data segment
+    uint32_t *data_segment = calloc(dcf+1, sizeof(uint32_t));
+    if (!data_segment) {
+        printf("Error allocating data segment!");
+        fclose(input_fd);
+        fclose(output_fd);
+        fclose(extern_fd);
+        fclose(entry_fd);
+        return STATUS_ERROR;
+    }
+
+    data_segment[0] = 1; // Start from idx = 1
+
     char line[MAX_LINE_LENGTH] = {0};
     while (fgets(line, MAX_LINE_LENGTH, input_fd) != NULL) {
-        printf("(*) Processing line: %s", line);
+        printf("(*) Processing line: %s\n", line);
         // Make a local copy of the line to avoid modifying the original
         char line_copy[MAX_LINE_LENGTH];
         strncpy(line_copy, line, MAX_LINE_LENGTH);
@@ -53,12 +77,32 @@ int EncodeFile(char *input_path, char *output_path, char *ext_path, Label *label
 
         while (isspace(*ptr)) ptr++;
 
-        // If is a DS directive, skip line
-        if (strncmp(ptr, ISTRING, strlen(ISTRING)) == 0
-        || strncmp(ptr, IDATA, strlen(IDATA)) == 0
-        || strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
-            printf("(*) Skipping DS directive or meta line.\n");
+        // If is a .extern directive, continue
+        if (strncmp(ptr, IEXTERN, strlen(IEXTERN)) == 0) {
+            printf("(*) Skipping .extern directive!\n");
             continue;
+        }
+
+        // If is a .entry directive, add to .ent
+        if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
+            ptr += strlen(IENTRY);
+            while (isspace(*ptr)) ptr++;
+            
+            Label *found = FindLabel(ptr, labels, label_count);
+            if (!found) {
+                printf("INVALID LABEL! --> %s\n", ptr);
+                continue;
+            }
+
+            fprintf(entry_fd, "%s: %07lu\n", found->name, found->address);
+            printf("(*) Wrote entry directive to entries file!\n");
+            continue;
+        }
+
+        // If it is a DS directive, add to data section
+        if (strncmp(ptr, ISTRING, strlen(ISTRING)) == 0
+        || strncmp(ptr, IDATA, strlen(IDATA)) == 0) {
+            HandleDSDirective(ptr, data_segment);
         }
 
         while (isspace(*ptr)) ptr++;
@@ -141,8 +185,20 @@ int EncodeFile(char *input_path, char *output_path, char *ext_path, Label *label
         }
     }
 
+    for (uint32_t i = 1; i < data_segment[0]; i++) {
+        fprintf(output_fd, "%07u : ", curr_address++);
+        WordToHex(output_fd, data_segment[i]);
+        printf("Wrote to data segment at %u!\n", curr_address-1);
+    }
+
+    // Cleanup
     fclose(input_fd);
     fclose(output_fd);
+    fclose(extern_fd);
+    fclose(entry_fd);
+
+    free(data_segment);
+    
     printf("(+) ENCODEFILE END\n");
     return 0;
 }

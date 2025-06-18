@@ -145,7 +145,7 @@ int SecondPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t
     for (size_t i = 0; i < files_size; i++) {
         char output_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
-
+        char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
 
         // Create .ob output path
         if (GetOutputPath(files[i], output_path, sizeof(output_path), ".ob") != 0) {
@@ -154,14 +154,20 @@ int SecondPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t
         }
 
         // Create .ext output path
-        if (GetOutputPath(files[i], extern_path, sizeof(output_path), ".ext") != 0) {
+        if (GetOutputPath(files[i], extern_path, sizeof(extern_path), ".ext") != 0) {
             printf("(-) Error: could not build .ext output path\n");
+            continue;
+        }
+
+        // Create .ent output path
+        if (GetOutputPath(files[i], entry_path, sizeof(entry_path), ".ent") != 0) {
+            printf("(-) Error: could not build .ent output path\n");
             continue;
         }
 
         printf("(*) Encoding file: %s -> %s\n", files[i], output_path);
 
-        if (EncodeFile(files[i], output_path, extern_path, labels, label_count, ICF, DCF) != 0) {
+        if (EncodeFile(files[i], output_path, extern_path, entry_path, labels, label_count, ICF, DCF) != 0) {
             printf("(-) Failed to encode %s\n", files[i]);
             continue;
         }

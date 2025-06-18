@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define WORD(x) (x & 0xFFFFFF)
 #define A 1 << 2;
 #define R 1 << 1;
 #define E 1 << 0;

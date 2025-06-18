@@ -84,7 +84,6 @@ uint32_t EncodeImm(char *op) {
     uint32_t ret = ((val < 0) ? (uint32_t)(val + (1 << 21)) : (uint32_t)val) << 3;
     ret |= A;
 
-    printf("IMM: val: %s -> %d --> %06X | ", op, val, ret);
     WordToBin(ret);
 
     return WORD(ret);

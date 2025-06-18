@@ -9,68 +9,6 @@ uint32_t DC  = 0;
 uint32_t ICF = 0;
 uint32_t DCF = 0;
 
-int  HandleDSDirective(char *token) {
-    if (!token) return STATUS_ERROR;
-
-    // Skip leading spaces
-    while (isspace((unsigned char)*token)) token++;
-
-    // Handling .data directive
-    if (strncmp(token, IDATA, strlen(IDATA)) == 0) {
-        token += strlen(IDATA);
-        while (isspace((unsigned char)*token)) token++;  // Skip spaces after ".data"
-
-        int values = 0;
-        int expect_number = 1;  // Expecting a number first
-
-        while (*token != '\n' && *token != '\0') {
-            if (isdigit(*token) || (*token == POS_DELIM || *token == NEG_DELIM)) {
-                if (*token == POS_DELIM || *token == NEG_DELIM) {  
-                    token++;  // Move past sign
-                    if (!isdigit(*token)) return STATUS_ERROR;  // Sign must be followed by a number
-                }
-
-                values++;  // Count valid numbers
-                expect_number = 0;  // Now expecting a comma or end
-
-                while (isdigit(*token)) token++;  // Skip full number
-                while (isspace((unsigned char)*token)) token++;  // Skip spaces
-            } 
-            else if (*token == ',') {
-                if (expect_number) return STATUS_ERROR;  // Invalid if ",," or leading ","
-                expect_number = 1;  // Now expecting a number
-                token++;  // Move past comma
-                while (isspace((unsigned char)*token)) token++;  // Skip spaces
-            } 
-            else {
-                return STATUS_ERROR;  // Unexpected character
-            }
-        }
-
-        return expect_number ? STATUS_ERROR : values;  // Ensure last token was valid
-    }
-
-    // Handling .string directive
-    if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
-        token += strlen(ISTRING);
-        while (isspace((unsigned char)*token)) token++;  // Skip spaces after ".string"
-
-        if (*token != '\"') return STATUS_ERROR;  // Ensure opening quote
-        token++;  // Skip opening quote
-
-        int values = 0;
-        while (*token && *token != '\"') {  // Read until closing quote
-            values++;
-            token++;
-        }
-
-        if (*token != '\"') return STATUS_ERROR;  // Ensure closing quote exists
-        return values + 1;  // +1 for null terminator
-    }
-
-    return STATUS_ERROR;
-}
-
 int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count) {
     if (!file_path || !labels || !label_count) return STATUS_ERROR;
 
@@ -169,7 +107,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             // Handle `.data` and `.string` directives
             if (strncmp(line, ISTRING, strlen(ISTRING)) == 0
             || strncmp(line, IDATA, strlen(IDATA)) == 0) {
-                int values = HandleDSDirective(line);
+                int values = HandleDSDirective(line, NULL);
                 if (values < 0) {
                     printf("Error in size calculation in line: %s\n", line);
                     continue;
@@ -221,7 +159,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
         if (curr->type == E_DATA) {
             curr->address = DC;
-            int values =  HandleDSDirective(rest);
+            int values =  HandleDSDirective(rest, NULL);
             if (values < 0) printf("Error calculating data size for label %s!, %s\n", curr->name, rest);
             else DC += values;
         } else {

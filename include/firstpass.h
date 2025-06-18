@@ -3,6 +3,7 @@
 
 #include "definitions.h"
 #include "command.h"
+#include "parser.h"
 #include "label.h"
 
 #include <string.h>
