@@ -15,7 +15,7 @@ typedef struct s_command {
     uint8_t addmodes;
 } Command;
 
-#define COMMAND_COUNT 16
+#define COMMAND_COUNT 26
 
 #define SRC_IMM (1<<0)
 #define SRC_DIR (1<<1)
@@ -33,22 +33,49 @@ typedef struct s_command {
 
 // Command table
 static const Command commands[COMMAND_COUNT] = {
+    // Basic move and arithmetic
     {"mov",  S_OF(0,  0), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
     {"cmp",  S_OF(1,  0), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_IMM | DST_DIR | DST_REG},
     {"add",  S_OF(2,  1), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
     {"sub",  S_OF(2,  2), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+
+    // Memory/address
     {"lea",  S_OF(4,  0), 2, SRC_DIR | DST_DIR | DST_REG},
+
+    // Unary operations
     {"clr",  S_OF(5,  1), 1, DST_DIR | DST_REG},
     {"not",  S_OF(5,  2), 1, DST_DIR | DST_REG},
     {"inc",  S_OF(5,  3), 1, DST_DIR | DST_REG},
     {"dec",  S_OF(5,  4), 1, DST_DIR | DST_REG},
+
+    // Branch and subroutine
     {"jmp",  S_OF(9,  1), 1, DST_DIR | DST_REL},
     {"bne",  S_OF(9,  2), 1, DST_DIR | DST_REL},
     {"jsr",  S_OF(9,  3), 1, DST_DIR | DST_REL},
+
+    // I/O
     {"red",  S_OF(12, 0), 1, DST_DIR | DST_REG},
     {"prn",  S_OF(13, 0), 1, DST_IMM | DST_DIR | DST_REG},
+
+    // Control
     {"rts",  S_OF(14, 0), 0, 0}, // No operands
-    {"stop", S_OF(15, 0), 0, 0}  // No operands
+    {"stop", S_OF(15, 0), 0, 0}, // No operands
+
+    // Logic and extended math
+    {"and",  S_OF(2,  3), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"or",   S_OF(2,  4), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"xor",  S_OF(2,  5), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"mul",  S_OF(2,  6), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"div",  S_OF(2,  7), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"mod",  S_OF(2,  8), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+
+    // Branch and stack
+    {"beq",  S_OF(9,  4), 1, DST_DIR | DST_REL},
+    {"push", S_OF(10, 0), 1, DST_IMM | DST_DIR | DST_REG},
+    {"pop",  S_OF(10, 1), 1, DST_DIR | DST_REG},
+
+    // No-op
+    {"nop",  S_OF(15, 1), 0, 0}  // No operands
 };
 
 const Command *FindCommand(char *com_name);
