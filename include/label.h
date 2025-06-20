@@ -16,8 +16,9 @@ typedef struct s_symbol {
     char *name;
     size_t address;
     LType type;
-    uint8_t entr;
-    uint8_t extr;
+    bool entr;
+    bool extr;
+    bool extr_used;
 } Label;
 
 Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count);

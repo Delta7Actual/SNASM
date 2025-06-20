@@ -1,7 +1,8 @@
-; Extern and entry symbols
-.extern EXTERNAL_LABEL
-.entry ENTRY_LABEL
+; Designed to work together with good2.as
 
-        mov r3, EXTERNAL_LABEL
-ENTRY_LABEL: add r5, r6
-             stop
+.extern ARR
+.entry UTILFUNC
+
+UTILFUNC: inc r1
+           lea ARR, r2
+           rts

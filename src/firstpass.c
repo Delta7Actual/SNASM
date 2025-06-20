@@ -75,7 +75,12 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             char *extern_label = TrimWhitespace(ptr);
             Label *existing = FindLabel(extern_label, labels, label_count);
             if (existing) {
-                printf("Error: Label %s was already defined, but extern was declared!\n", extern_label);
+                // If label is already marked as extern, that's fine
+                if (!existing->extr) {
+                    // Defined in this same file
+                    existing->extr = 1;
+                    LogDebug("Warning: %s declared extern but already defined; assuming multi-file linking.\n", extern_label);                    continue;
+                }
                 continue;
             }
 
@@ -118,16 +123,16 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             }
             else { // Instruction or comment
                 int offset = 0;
-                while(isspace(line[offset])) offset++;
+                while(isblank(line[offset])) offset++;
                 if (line[offset] == COMMENT_DELIM) continue;
 
-                const Command *com = FindCommand(line);
+                const Command *com = FindCommand(line + offset);
                 if (!com) {
                     printf("Error parsing instruction in line: %s\n", line);
                     continue;
                 }
 
-                int words = ValidateCommand(line, com);
+                int words = ValidateCommand(line + offset, com);
                 if (words < 0) {
                     printf("Error in size calculation in line: %s\n", line);
                     continue;
@@ -153,11 +158,34 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
         while (isspace((unsigned char)*rest)) rest++;  // Skip spaces after colon
 
-        if (FindLabel(curr->name, labels, label_count) != NULL) {
-            printf("Multiple definitions of label: %s!\n", curr->name);
+        Label *found = FindLabel(curr->name, labels, label_count);
+        if (found) {
+            if (found->extr) {
+                // Was previously extern
+                found->address = (curr->type == E_DATA) ? DC : IC;
+                found->type = curr->type;
+                found->extr = 0; // No longer external
+                LogDebug("Updated previously extern label %s to local definition\n", curr->name);
+                // Adjust counters
+                if (curr->type == E_DATA) {
+                    int values = HandleDSDirective(rest, NULL);
+                    if (values >= 0) DC += values;
+                } else {
+                    const Command *com = FindCommand(rest);
+                    if (com) {
+                        int words = ValidateCommand(rest, com);
+                        if (words > 0) IC += words;
+                    }
+                }
+                free(curr);
+                continue;
+        } else {
+            // Fully defined already
+            printf("(-) Error: Multiple definitions of label: %s!\n", curr->name);
             free(curr);
             continue;
         }
+    }
 
         if (curr->type == E_DATA) {
             curr->address = DC;

@@ -3,7 +3,7 @@
 char *TrimWhitespace(char *str) {
     if (!str) return NULL;
     
-    while (isspace((unsigned char)*str)) str++; // Skip leading spaces
+    while (isblank((unsigned char)*str)) str++; // Skip leading spaces
     if (*str == 0) return str;
 
     char *end = str + strlen(str) - 1;

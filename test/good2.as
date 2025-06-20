@@ -1,8 +1,12 @@
-STRING: .string "hello world!"
-mov #12, r2
+; Designed to work together with good3.as
 
-LOOP: prn r1
-dec r2
-bne &END
+.extern UTILFUNC
+.entry START
 
-END: stop
+START:  mov #5, r1
+        jsr UTILFUNC
+        prn r1
+        stop
+
+; Some local data
+ARR:    .data 3, 2, 1

@@ -13,6 +13,9 @@ typedef struct flags_s {
     bool gen_externals;
     bool gen_entries;
     const char *output_file;
+    bool append_to_out;
+    bool append_to_ent;
+    bool append_to_ext;
 } Flags;
 
 extern Flags ASSEMBLER_FLAGS;

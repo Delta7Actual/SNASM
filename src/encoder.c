@@ -82,7 +82,11 @@ uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     }
 
     // Check for extern
-    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
+    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) {
+        label->extr_used = true;
+        fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
+        if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
+    }
 
     return WORD(ret);
 }
@@ -107,8 +111,11 @@ uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     ret |= A;
 
     // Check for extern
-    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
-
+    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) {
+        label->extr_used = true;
+        fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
+        if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
+    }
     return ret;
 }
 
