@@ -3,7 +3,6 @@
 uint32_t curr_address = 100;
 
 int EncodeFile(char *input_path, char *output_path, char *extern_path, char *entry_path, Label *labels, size_t *label_count, uint32_t icf, uint32_t dcf) {
-    printf("(+) ENCODEFILE START: input='%s', output='%s', icf=%u, dcf=%u\n", input_path, output_path, icf, dcf);
     if (!input_path || !output_path || !labels || !label_count) return STATUS_ERROR;
 
     FILE *input_fd = fopen(input_path, "r");
@@ -11,7 +10,6 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         printf("(-) Failed to open input file: %s\n", input_path);
         return STATUS_ERROR;
     }
-    printf("(*) Opened input file: %s\n", input_path);
 
     FILE *output_fd = fopen(output_path, "w");
     if (!output_fd) {
@@ -19,29 +17,32 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         fclose(input_fd);
         return STATUS_ERROR;
     }
-    printf("(*) Opened output file: %s\n", output_path);
 
-    FILE *extern_fd = fopen(extern_path, "w");
-    if (!extern_fd) {
-        printf("(-) Failed to open extern file: %s\n", extern_path);
-        fclose(input_fd);
-        fclose(output_fd);
-        return STATUS_ERROR;
+    FILE *extern_fd = NULL;
+    if (ASSEMBLER_FLAGS.gen_externals) {
+        extern_fd = fopen(extern_path, "w");
+        if (!extern_fd) {
+            printf("(-) Failed to open extern file: %s\n", extern_path);
+            fclose(input_fd);
+            fclose(output_fd);
+            return STATUS_ERROR;
+        }
     }
-    printf("(*) Opened extern file: %s\n", extern_path);
 
-    FILE *entry_fd = fopen(entry_path, "w");
-    if (!entry_fd) {
-        printf("(-) Failed to open entry file: %s\n", entry_path);
-        fclose(input_fd);
-        fclose(output_fd);
-        fclose(extern_fd);
-        return STATUS_ERROR;
+    FILE *entry_fd = NULL;
+    if (ASSEMBLER_FLAGS.gen_entries) {
+        entry_fd = fopen(entry_path, "w");
+        if (!entry_fd) {
+            printf("(-) Failed to open entry file: %s\n", entry_path);
+            fclose(input_fd);
+            fclose(output_fd);
+            if (extern_fd) fclose(extern_fd);
+            return STATUS_ERROR;
+        }
     }
-    printf("(*) Opened entry file: %s\n", entry_path);
 
     fprintf(output_fd, "%u | %u\n", icf-100, dcf);
-    printf("(*) Wrote header to output: %u | %u\n", icf, dcf);
+    LogDebug("Wrote header to output: %u | %u\n", icf, dcf);
 
     // Data segment
     uint32_t *data_segment = calloc(dcf+1, sizeof(uint32_t));
@@ -58,7 +59,8 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
 
     char line[MAX_LINE_LENGTH] = {0};
     while (fgets(line, MAX_LINE_LENGTH, input_fd) != NULL) {
-        printf("(*) Processing line: %s\n", line);
+        TrimNewline(line);
+        LogDebug("Processing line: %s\n", line);
         // Make a local copy of the line to avoid modifying the original
         char line_copy[MAX_LINE_LENGTH];
         strncpy(line_copy, line, MAX_LINE_LENGTH);
@@ -79,24 +81,26 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
 
         // If is a .extern directive, continue
         if (strncmp(ptr, IEXTERN, strlen(IEXTERN)) == 0) {
-            printf("(*) Skipping .extern directive!\n");
+            LogDebug("Skipping '.extern' directive!\n");
             continue;
         }
 
         // If is a .entry directive, add to .ent
         if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
-            ptr += strlen(IENTRY);
-            while (isspace(*ptr)) ptr++;
-            
-            Label *found = FindLabel(ptr, labels, label_count);
-            if (!found) {
-                printf("INVALID LABEL! --> %s\n", ptr);
-                continue;
-            }
+            if (ASSEMBLER_FLAGS.gen_entries) {
+                ptr += strlen(IENTRY);
+                while (isspace(*ptr)) ptr++;
+                
+                Label *found = FindLabel(ptr, labels, label_count);
+                if (!found) {
+                    printf("INVALID LABEL! --> %s\n", ptr);
+                    continue;
+                }
 
-            fprintf(entry_fd, "%s: %07lu\n", found->name, found->address);
-            printf("(*) Wrote entry directive to entries file!\n");
-            continue;
+                fprintf(entry_fd, "%s: %07lu\n", found->name, found->address);
+                LogDebug("Wrote entry directive to entries file!\n");
+            }
+        continue;
         }
 
         // If it is a DS directive, add to data section
@@ -110,25 +114,26 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         // Handle instruction
         const Command *comm = FindCommand(ptr);
         if (!comm) {
-            printf("(-) INVALID COMMAND NAME! -> %s\n", ptr);
+            LogDebug("Skipping non-command line %s\n", ptr);
             continue;
         }
-        printf("(*) Found command: %s\n", comm->name);
+        LogDebug("Found command: %s\n", comm->name);
 
         ptr += strlen(comm->name); 
 
         uint32_t word = 0;
         uint8_t add_modes = (uint8_t)DetermineAddressingModes(ptr, comm->opcount); 
         int non_reg = EncodeCommand(ptr, comm, add_modes, &word);
-        printf("(*) Encoded command word:\n0b");
-        for (int i = 31; i >= 0; i--) {
-            printf("%d", (word >> i) & 1);
+        LogDebug("Encoded command word:\n");
+        if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+            LogDebug("Hex: 0x%07X | Bin: 0b", word);
+            LogU32AsBin(word);
         }
-        printf("\n0x%07X\n", word);
+
         // Emit first word
         fprintf(output_fd, "%07u : ", curr_address++);
         WordToHex(output_fd, word);
-        printf("(*) Wrote command word at %u to output.\n", curr_address);
+        LogDebug("Wrote command word at %u to output.\n", curr_address);
 
         // Tokenize the operands after command
         char *src = NULL, *dst = NULL;
@@ -151,17 +156,32 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                 uint32_t imm = EncodeImm(src);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, imm);
-                printf("(*) Encoded immediate src operand at %u: %s\n", curr_address, src);
+
+                LogDebug("Encoded immediate operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", imm);
+                    LogU32AsBin(imm);
+                }
             } else if (*src == '&') {
                 uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, extern_fd); // Skip '&'
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, rel);
-                printf("(*) Encoded relative src operand at %u: %s\n", curr_address, src);
+
+                LogDebug("Encoded relative operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", rel);
+                    LogU32AsBin(rel);
+                }
             } else if (*src != 'r') {
                 uint32_t dir = EncodeDir(src, labels, label_count, curr_address, extern_fd);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, dir);
-                printf("(*) Encoded direct src operand at %u: %s\n", curr_address, src);
+
+                LogDebug("Encoded direct operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", dir);
+                    LogU32AsBin(dir);
+                }
             }
         }
 
@@ -170,17 +190,32 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                 uint32_t imm = EncodeImm(dst);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, imm);
-                printf("(*) Encoded immediate dst operand: %s\n", dst);
+                
+                LogDebug("Encoded immediate operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", imm);
+                    LogU32AsBin(imm);
+                }
             } else if (*dst == '&') {
                 uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, extern_fd);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, rel);
-                printf("(*) Encoded relative dst operand: %s\n", dst);
+
+                LogDebug("Encoded relative operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", rel);
+                    LogU32AsBin(rel);
+                }
             } else if (*dst != 'r') {
                 uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, extern_fd);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, dir);
-                printf("(*) Encoded direct dst operand: %s\n", dst);
+
+                LogDebug("Encoded direct operand at %u:\n", curr_address-1);
+                if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
+                    LogDebug("Hex: 0x%06X | Bin: 0b", dir);
+                    LogU32AsBin(dir);
+                }
             }
         }
     }
@@ -188,17 +223,20 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
     for (uint32_t i = 1; i < data_segment[0]; i++) {
         fprintf(output_fd, "%07u : ", curr_address++);
         WordToHex(output_fd, data_segment[i]);
-        printf("Wrote to data segment at %u!\n", curr_address-1);
+        LogDebug("Wrote to data segment at %u!\n", curr_address-1);
     }
+
+    LogVerbose("Successfully encoded %s. Wrote %u words to output\n", input_path, icf + dcf - 101);
+    LogVerbose("Text-Section begins at %u, ends at %u\n", 100, icf -1);
+    LogVerbose("Data-Segment begins at %u, ends at %u\n", icf, icf + dcf - 1);
 
     // Cleanup
     fclose(input_fd);
     fclose(output_fd);
-    fclose(extern_fd);
-    fclose(entry_fd);
+    if (extern_fd) fclose(extern_fd);
+    if (entry_fd)  fclose(entry_fd);
 
     free(data_segment);
     
-    printf("(+) ENCODEFILE END\n");
     return 0;
 }

@@ -89,6 +89,7 @@ int ValidateLabelName(char *name) {
 }
 
 int CleanUpLabel(Label *label) {
+    LogDebug("Cleaning up label...");
     if (label == NULL) return STATUS_ERROR;
     if (label->name) free(label->name);
     free(label);

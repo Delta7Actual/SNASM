@@ -23,7 +23,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
 
-        printf("(*) Curr: IC->%d, DC->%d -- Line: %s\n", IC, DC, line);
+        LogDebug("Curr: IC->%d/DC->%d\n", IC, DC);
 
         // Skip leading spaces manually
         char *ptr = line;
@@ -37,7 +37,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             while (isspace((unsigned char)*ptr)) ptr++;  // Skip spaces
 
             if (*ptr == '\0') {
-                printf("Error: Missing label in .entry directive\n");
+                LogInfo("Error: Missing label in .entry directive\n");
                 continue;
             }
 
@@ -58,7 +58,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             } else {
                 entries[entry_count] = strdup(entry_label);
                 entry_count++;
-                printf("\n(*) .entry label not defined (Will check in second pass) -> %s\n\n", entries[entry_count-1]);
+                LogDebug("Parsed entry directive\n");
             }
             continue;
         }
@@ -87,6 +87,8 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
             externals[extern_count] = strdup(extern_label);
             extern_count++;
+
+            LogDebug("Parsed extern directive\n");
 
             continue;
         }
@@ -185,6 +187,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     }
 
     // Re-check entries
+    LogDebug("Validating entry definitions...\n");
     for (size_t i = 0; i < entry_count; i++) {
         Label *entry = FindLabel(entries[i], labels, label_count);
         if (!entry) {
@@ -196,6 +199,10 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         free(entries[i]);
     }
 
+    LogVerbose("Generated symbol table for file %s.\n", file_path);
+    LogVerbose("Found %zu entry point(s) and %zu external reference(s)\n", entry_count, extern_count);
+    LogVerbose("Compiled %zu symbols in file %s\n", *label_count, file_path);
+
     fclose(file_fd);
     return 0;
 }
@@ -206,8 +213,8 @@ int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
     int status = 0;
     for (size_t i = 0; i < *label_count; i++) {
         if (labels[i].entr != labels[i].extr) {
-            status = -1;
-            printf("\n(*) Warning: Failed to find matching %s for label %s in program!\n\n", 
+            status++;
+            LogDebug("Warning: Failed to find matching %s for label %s in program!\n", 
             (labels[i].entr == 0) ? ".entry" : ".extern", labels[i].name);
         }
         if (labels[i].type == E_DATA) labels[i].address += ICF;

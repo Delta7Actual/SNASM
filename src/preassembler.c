@@ -1,7 +1,5 @@
 #include "../include/preassembler.h"
 
-static char CONTEXT[] = "PreAssembler";
-
 /* 
  * ParseMacros:
  *  - Opens the given file.
@@ -12,19 +10,19 @@ static char CONTEXT[] = "PreAssembler";
  */
 int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (file_path == NULL || macros == NULL || macro_count == NULL) {
-        LogError(CONTEXT, "ParseMacros", "Received NULL input");
+        LogInfo("ParseMacros: received NULL input(s)\n");
         return STATUS_ERROR;
     }
 
     FILE *file_fd = fopen(file_path, "r");
     if (file_fd == NULL) {
-        LogError(CONTEXT, "ParseMacros", "Failed to open file");
+        LogInfo("ParseMacros: failed to open file %s\n", file_path);
         return STATUS_ERROR;
     }
 
     Macro *curr = malloc(sizeof(Macro));
     if (curr == NULL) {
-        LogError(CONTEXT, "ParseMacros", "Failed to allocate memory for Macro");
+        LogInfo("ParseMacros failed to allocate memory for Macro\n");
         fclose(file_fd);
         return STATUS_ERROR;
     }
@@ -34,12 +32,13 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         memset(curr, 0, sizeof(*curr));
         int status = AddMacro(file_fd, curr);
         if (status == STATUS_ERROR) {
-            LogError(CONTEXT, "ParseMacros", "AddMacro failed");
+            LogInfo("ParseMacros: AddMacro() failed: %d\n", status);
             free(curr);
             fclose(file_fd);
             return STATUS_ERROR;
         }
         if (status == STATUS_NO_RESULT) {
+            LogVerbose("Macro parsing complete. Found %zu macros in %s\n", *macro_count, file_path);
             break;  // No more macros found in the file
         }
 
@@ -51,7 +50,7 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
 
         /* Validate macro name: ensure it doesn't conflict with any command */
         if (FindCommand(curr->name) != NULL) {
-            LogError(CONTEXT, "ParseMacros", "Invalid macro name: conflicts with a command");
+            LogInfo("ParseMacros: Error, macro name cannot be a command! <-- %s\n", curr->name);
             CleanUpMacro(curr);
             fclose(file_fd);
             return STATUS_ERROR;
@@ -59,7 +58,7 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
         
         /* Check for duplicate macros */
         if (FindMacro(curr->name, macros, macro_count) != NULL) {
-            LogError(CONTEXT, "ParseMacros", "Macro already exists");
+            LogInfo("ParseMacros: Found multiple definitions of %s!\n", curr->name);
             CleanUpMacro(curr);
             fclose(file_fd);
             return STATUS_ERROR;
@@ -86,19 +85,19 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
  */
 int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], size_t *macro_count) {
     if (input_path == NULL || output_path == NULL || macros == NULL || macro_count == NULL) {
-        LogError(CONTEXT, "ExpandMacros", "Received NULL input");
+        LogInfo("ExpandMacros: Received NULL input(s)\n");
         return STATUS_ERROR;
     }
 
     FILE *input_fd = fopen(input_path, "r");
     if (input_fd == NULL) {
-        LogError(CONTEXT, "ExpandMacros", "Failed to open input file");
+        LogInfo("ExpandMacros: failed to open input file %s\n", input_path);
         return STATUS_ERROR;
     }
 
     FILE *output_fd = fopen(output_path, "w");
     if (output_fd == NULL) {
-        LogError(CONTEXT, "ExpandMacros", "Failed to open output file");
+        LogInfo("ExpandMacros: failed to open output file %s\n", output_path);
         fclose(input_fd);
         return STATUS_ERROR;
     }
@@ -109,12 +108,8 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
     while (fgets(line, MAX_LINE_LENGTH, input_fd)) {
         /* Write empty lines directly to the output */
         if (line[0] == '\n' || line[0] == '\r') {
-            if (fprintf(output_fd, "%s", line) < 0) {
-                LogError(CONTEXT, "ExpandMacros", "Failed to write empty line to output");
-                fclose(input_fd);
-                fclose(output_fd);
-                return STATUS_ERROR;
-            }
+            fprintf(output_fd, "%s", line);
+            LogDebug("Expanding empty line...\n");
             continue;
         }
 
@@ -141,7 +136,7 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
         /* Extract the potential macro name */
         char *macro_name = strndup(line + start, name_length);
         if (macro_name == NULL) {
-            LogError(CONTEXT, "ExpandMacros", "Failed to allocate memory for macro name");
+            LogInfo("ExpandMacros: Failed to allocate memory for macro name <-- %s\n", macro_name);
             fclose(input_fd);
             fclose(output_fd);
             return STATUS_ERROR;
@@ -152,22 +147,20 @@ int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], 
 
         if (curr != NULL) {
             /* Macro call found: write its body to the output */
+            LogDebug("Found macro call for %s\n", curr->name);
             for (size_t i = 0; i < curr->line_count; i++) {
                 if (fprintf(output_fd, "%s", curr->body[i]) < 0) {
-                    LogError(CONTEXT, "ExpandMacros", "Failed to write macro body to output");
+                    LogInfo("ExpandMacros: Failed to write macro body to output!\n");
                     fclose(input_fd);
                     fclose(output_fd);
                     return STATUS_ERROR;
                 }
+                LogDebug("Successfully expanded macro for %s\n", curr->name);
             }
         } else {
-            /* Not a macro call; write the original line as-is */
-            if (fprintf(output_fd, "%s", line) < 0) {
-                LogError(CONTEXT, "ExpandMacros", "Failed to write line to output");
-                fclose(input_fd);
-                fclose(output_fd);
-                return STATUS_ERROR;
-            }
+            // Not inside Macro, write as is
+            fprintf(output_fd, "%s", line);
+            LogDebug("Expanding line...\n");
         }
     }
 

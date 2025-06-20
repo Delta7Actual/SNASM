@@ -11,10 +11,11 @@ const Command *FindCommand(char *com_name) {
     return NULL;
 }
 
-// We shouldnt need to pass the symbol table here, should be a better way
-// TODO: Change this
 int ValidateCommand(char *com_line, const Command *comm) {
     if (!com_line || !comm) return STATUS_ERROR;
+
+    TrimNewline(com_line);
+    LogDebug("Validating command %s, Line: %s\n", comm->name, com_line);
 
     int offset = 0;
     while (isspace(com_line[offset])) offset++; 
@@ -40,6 +41,7 @@ int ValidateCommand(char *com_line, const Command *comm) {
     if ((modes & SRC_REG) == SRC_REG) words--;
     if ((modes & DST_REG) == DST_REG) words--;
 
+    LogDebug("Command validated successfully. %d words\n", words);
     return words; // 1 word for command + 1 for each non register operand
 }
 
@@ -49,6 +51,8 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
     uint8_t ret = 0;
     uint8_t ops = 0;
     int offset = 0;
+
+    LogDebug("Determining addressing mode for %u ops: %s\n", opCount, operand);
 
     while (isspace(operand[offset])) offset++;
     
@@ -123,5 +127,9 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
         ret <<= 4;
     }
 
+    LogDebug("Addressing modes computed: 0x%02X | 0b", ret);
+    if (CURRENT_LOG_LEVEL >= LOG_DEBUG) { 
+        LogU32AsBin(ret);
+    }
     return ret;
 }

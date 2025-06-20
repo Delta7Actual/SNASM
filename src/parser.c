@@ -2,8 +2,6 @@
 
 char *TrimWhitespace(char *str) {
     if (!str) return NULL;
-
-    printf("Trimming: %s\n", str);
     
     while (isspace((unsigned char)*str)) str++; // Skip leading spaces
     if (*str == 0) return str;
@@ -21,8 +19,14 @@ int HandleDSDirective(char *token, uint32_t *data) {
     // Skip leading spaces
     while (isspace((unsigned char)*token)) token++;
 
+    TrimNewline(token);
+    LogDebug("Handling DS directive: %s\n", token);
+    LogDebug("Currently%s writing to data segment\n", (data) ? "" : " NOT");
+
     // Handling .data directive
     if (strncmp(token, IDATA, strlen(IDATA)) == 0) {
+        LogDebug("Directive is '.data'\n");
+
         token += strlen(IDATA);
         while (isspace((unsigned char)*token)) token++;  // Skip spaces after ".data"
 
@@ -62,6 +66,8 @@ int HandleDSDirective(char *token, uint32_t *data) {
 
     // Handling .string directive
     if (strncmp(token, ISTRING, strlen(ISTRING)) == 0) {
+        LogDebug("Directive is '.string'\n");
+
         token += strlen(ISTRING);
         while (isspace((unsigned char)*token)) token++;
 
@@ -88,4 +94,11 @@ int HandleDSDirective(char *token, uint32_t *data) {
     }
 
     return STATUS_ERROR;
+}
+
+void TrimNewline(char *line) {
+    size_t len = strlen(line);
+    if (len > 0 && line[len - 1] == '\n') {
+        line[len - 1] = '\0';
+    }
 }

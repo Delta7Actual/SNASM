@@ -12,4 +12,6 @@ char *TrimWhitespace(char *str);
 
 int HandleDSDirective(char *token, uint32_t *data);
 
+void TrimNewline(char *line);
+
 #endif

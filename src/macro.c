@@ -8,6 +8,7 @@ Macro *FindMacro(char *name, Macro macros[MAX_MACROS], size_t *macro_count) {
             return &macros[i];
         }
     }
+
     return NULL;
 }
 
@@ -49,6 +50,7 @@ int AddMacro(FILE *file_fd, Macro *macro) {
 }
 
 int CleanUpMacro(Macro *macro) {
+    LogDebug("Cleaning up macro...\n");
     if (macro == NULL) return STATUS_ERROR;
     if (macro->name) free(macro->name);  // Free macro name
     for (size_t i = 0; i < macro->line_count; i++) {
@@ -71,5 +73,7 @@ char *GetMacroName(char *line) {
     // Copy the macro name into macro->name
     char *ret = strndup(line + name_offset, name_length);
     if (ret == NULL) return NULL;
+
+    LogDebug("Parsed macro name: %s --> %s\n", line, ret);
     return ret;
 }

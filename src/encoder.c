@@ -3,31 +3,9 @@
 int EncodeCommand(char *ops, const Command *comm, uint8_t modes, uint32_t *out) {
     assert(comm && out);
 
-    printf("(*) Encoding command first word: %s, ops: %s\n", comm->name, ops);
-
-    printf("-> ");
-    for (int i = 31; i >= 0; i--) {
-        printf("%d", (*out >> i) & 1);
-    }
-    printf("\n");
     *out |= (G_OP(comm->ident) << 18);
-    printf("-> ");
-    for (int i = 31; i >= 0; i--) {
-        printf("%d", (*out >> i) & 1);
-    }
-    printf("\n");
     *out |= ((G_FT(comm->ident)) << 3);
-    printf("-> ");
-    for (int i = 31; i >= 0; i--) {
-        printf("%d", (*out >> i) & 1);
-    }
-    printf("\n");
     *out |= A;
-    printf("-> ");
-    for (int i = 31; i >= 0; i--) {
-        printf("%d", (*out >> i) & 1);
-    }
-    printf("\n");
     
     int ret = comm->opcount;
 
@@ -84,8 +62,6 @@ uint32_t EncodeImm(char *op) {
     uint32_t ret = ((val < 0) ? (uint32_t)(val + (1 << 21)) : (uint32_t)val) << 3;
     ret |= A;
 
-    WordToBin(ret);
-
     return WORD(ret);
 }
 
@@ -106,7 +82,7 @@ uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     }
 
     // Check for extern
-    if (label->extr > 0) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
+    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
 
     return WORD(ret);
 }
@@ -131,7 +107,7 @@ uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     ret |= A;
 
     // Check for extern
-    if (label->extr > 0) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
+    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
 
     return ret;
 }
@@ -139,13 +115,4 @@ uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
 void WordToHex(FILE *file, uint32_t num) {
     num = WORD(num);
     fprintf(file, "0x%06X\n", num);
-}
-
-void WordToBin(uint32_t num) {
-    num = WORD(num);
-    for (int i = 23; i >= 0; i--) {
-        putchar((num & (1 << i)) ? '1' : '0');
-        if (i % 4 == 0 && i != 0) putchar(' '); // Group by 4 bits
-    }
-    putchar('\n');
 }
