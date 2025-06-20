@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include "logger.h"
+#include "flags.h"
 
 /// GLOBAL WINDOWS FUNCTIONS ///
 #if defined(_WIN32) || defined(_WIN64)

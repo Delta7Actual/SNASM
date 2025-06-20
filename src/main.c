@@ -7,39 +7,34 @@
 #include "../include/io.h"
 
 // Function Prototypes
-void CleanAndExit(char **files, size_t files_size);
-int PreAssemble(char **files, size_t files_size);
-int FirstPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
-int SecondPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
+void CleanAndExit(char **input_files, size_t files_size);
+int PreAssemble(char **input_files, size_t files_size);
+int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
+int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
 int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension);
 
 int main(int argc, char **argv) {
-    printf("(+) PROGRAM START\n");
+    char **files = NULL;
+    int input_count = 0;
 
-    if (argc < 2) {
-        printf("(*) Please input a .as file to be assembled...\n");
-        return EXIT_FAILURE;
+    if (ParseFlags(argc, argv, &files, &input_count) != 0) {
+        return 1;
     }
 
-    // Allocate memory for filenames
-    char **files = malloc((argc - 1) * sizeof(char *));
-    if (!files) {
-        printf("(-) Error: Memory allocation failed");
-        return EXIT_FAILURE;
+    if (input_count == 0) {
+        printf("(-) No input files provided.\n");
+        PrintHelp();
+        return 1;
     }
 
-    for (int i = 1; i < argc; i++) {
-        files[i - 1] = strdup(argv[i]);
-        if (!files[i - 1]) {
-            printf("(-) Error: Failed to allocate memory for file name...\n");
-            CleanAndExit(files, i - 1);
-            return EXIT_FAILURE;
-        }
-    }
+    LogInfo("(+) PROGRAM START\n");
+    if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("Will print symbol table...\n");
+    if (ASSEMBLER_FLAGS.gen_entries) LogVerbose("Will generate entries file...\n");
+    if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("Will generate externals file...\n");
 
     // Pre-Assembler Stage
-    if (PreAssemble(files, argc - 1) != 0) {
-        CleanAndExit(files, argc - 1);
+    if (PreAssemble(files, input_count) != 0) {
+        CleanAndExit(files, input_count);
         return EXIT_FAILURE;
     }
 
@@ -47,34 +42,34 @@ int main(int argc, char **argv) {
     size_t label_count = 0;
 
     // First Pass Stage
-    if (FirstPass(files, argc - 1, labels, &label_count) != 0) {
-        CleanAndExit(files, argc - 1);
+    if (FirstPass(files, input_count, labels, &label_count) != 0) {
+        CleanAndExit(files, input_count);
         return EXIT_FAILURE;
     }
 
     // Second Pass Stage
-    if (SecondPass(files, argc - 1, labels, &label_count) != 0) {
-        CleanAndExit(files, argc - 1);
+    if (SecondPass(files, input_count, labels, &label_count) != 0) {
+        CleanAndExit(files, input_count);
         return EXIT_FAILURE;
     }
 
-    CleanAndExit(files, argc - 1);
-    printf("(+) PROGRAM END\n");
+    CleanAndExit(files, input_count);
+    LogInfo("(+) PROGRAM END\n");
     return EXIT_SUCCESS;
 }
 
 // Free allocated memory
-void CleanAndExit(char **files, size_t files_size) {
-    printf("(+) PROGRAM CLEAN\n");
+void CleanAndExit(char **input_files, size_t files_size) {
+    LogInfo("(+) PROGRAM CLEAN\n");
     for (size_t i = 0; i < files_size; i++) {
-        if (files[i]) free(files[i]);
+        if (input_files[i]) free(input_files[i]);
     }
-    free(files);
+    free(input_files);
 }
 
 // Pre-Assemble: Expands macros and writes an intermediate .am file
-int PreAssemble(char **files, size_t files_size) {
-    printf("(+) PROGRAM PREASSEMBLE\n");
+int PreAssemble(char **input_files, size_t files_size) {
+    LogVerbose("PROGRAM PREASSEMBLE\n");
 
     Macro macros[MAX_MACROS];
     char output_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH];
@@ -84,98 +79,103 @@ int PreAssemble(char **files, size_t files_size) {
         size_t count = 0;
         memset(macros, 0, sizeof(macros));
 
-        status = ParseMacros(files[i], macros, &count);
+        status = ParseMacros(input_files[i], macros, &count);
         if (status != 0) {
-            printf("(-) Error in macro parsing for file '%s': ParseMacros {%d}\n", files[i], status);
+            printf("(-) Error in macro parsing for file '%s': ParseMacros {%d}\n", input_files[i], status);
             return status;
         }
 
-        if (GetOutputPath(files[i], output_path, sizeof(output_path), ".am") != 0) {
-            printf("(-) Error: Failed to construct output path for file '%s'\n", files[i]);
+        if (GetOutputPath(input_files[i], output_path, sizeof(output_path), ".am") != 0) {
+            printf("(-) Error: Failed to construct output path for file '%s'\n", input_files[i]);
             return EXIT_FAILURE;
         }
 
-        status = ExpandMacros(files[i], output_path, macros, &count);
+        LogVerbose("Successfully generated output path!\n");
+
+        status = ExpandMacros(input_files[i], output_path, macros, &count);
         if (status != 0) {
-            printf("(-) Error in macro expanding for file '%s': ExpandMacros {%d}\n", files[i], status);
+            printf("(-) Error in macro expanding for file '%s': ExpandMacros {%d}\n", input_files[i], status);
             return status;
         }
+
+        LogVerbose("Successfully Pre-Assembled file: %s\n", input_files[i]);
     }
 
-    printf("(+) PREASSEMBLE SUCCESS\n");
+    LogInfo("(+) PREASSEMBLE SUCCESS\n");
     return 0;
 }
 
 // First Pass: Builds symbol table and creates .ent file
-int FirstPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count) {
+int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count) {
     IC = 100;
-    printf("(+) FIRST PASS START | IC:%d/DC:%d\n", IC, DC);
+    LogDebug("Starting address params: IC = %u | DC = %u\n", IC, DC);
 
     for (size_t i = 0; i < files_size; i++) {
-        if (BuildSymbolTable(files[i], labels, label_count) != 0) {
-            printf("(-) Error in first pass for file '%s'\n", files[i]);
+        if (BuildSymbolTable(input_files[i], labels, label_count) != 0) {
+            printf("(-) Error in first pass for file '%s'\n", input_files[i]);
             return EXIT_FAILURE;
         }
+        LogVerbose("Successfully Pre-Assembled file: %s\n", input_files[i]);
     }
 
     ICF = IC;
-    if (ValidateSymbolTable(labels, label_count) < 0) {
-        printf("\n(-) Generated symbol table failed validation!\n\n");
+    int symbol_status = ValidateSymbolTable(labels, label_count); 
+    if (symbol_status != 0) {
+        LogInfo("(*) Warning: Found %u warnings in symbol validation!\n", symbol_status);
     }
     DCF = DC;
     
-    printf("(+) Displaying symbol table\n");
-    for (size_t i = 0; i < *label_count; i++) {
-        printf("(*) --------------------------------------------------------\n    |Label:%-8s|Addr:%07zu|Entry:%d|Extern:%d|Type:%s|\n",
-            labels[i].name,
-            labels[i].address,
-            labels[i].entr,
-            labels[i].extr,
-            (labels[i].type == E_CODE) ? "CODE" : "DATA");
-        }
+    if (ASSEMBLER_FLAGS.show_symbols > 0) {
+    printf("Displaying symbol table\n");
+        for (size_t i = 0; i < *label_count; i++) {
+            printf("    --------------------------------------------------------\n    |Label:%-8s|Addr:%07zu|Entry:%d|Extern:%d|Type:%s|\n",
+                labels[i].name,
+                labels[i].address,
+                labels[i].entr,
+                labels[i].extr,
+                (labels[i].type == E_CODE) ? "CODE" : "DATA");
+            }
         printf("    --------------------------------------------------------\n");
-        
-    printf("(+) FIRST PASS SUCCESS | IC:%d/DC:%d\n", IC, DC);
+    }
+
+    LogInfo("(+) FIRST PASS SUCCESS\n");
+    LogVerbose("Current address params IC = %u , DC = %u\n", IC, DC);
     return 0;
 }
 
-int SecondPass(char **files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count) {
-    printf("(+) SECOND PASS START\n");
-
+int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count) {
     for (size_t i = 0; i < files_size; i++) {
         char output_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
 
         // Create .ob output path
-        if (GetOutputPath(files[i], output_path, sizeof(output_path), ".ob") != 0) {
+        if (GetOutputPath(input_files[i], output_path, sizeof(output_path), ".ob") != 0) {
             printf("(-) Error: could not build .ob output path\n");
             continue;
         }
 
         // Create .ext output path
-        if (GetOutputPath(files[i], extern_path, sizeof(extern_path), ".ext") != 0) {
+        if (GetOutputPath(input_files[i], extern_path, sizeof(extern_path), ".ext") != 0) {
             printf("(-) Error: could not build .ext output path\n");
             continue;
         }
 
         // Create .ent output path
-        if (GetOutputPath(files[i], entry_path, sizeof(entry_path), ".ent") != 0) {
+        if (GetOutputPath(input_files[i], entry_path, sizeof(entry_path), ".ent") != 0) {
             printf("(-) Error: could not build .ent output path\n");
             continue;
         }
 
-        printf("(*) Encoding file: %s -> %s\n", files[i], output_path);
+        LogVerbose("Successfully generated output paths!\n");
 
-        if (EncodeFile(files[i], output_path, extern_path, entry_path, labels, label_count, ICF, DCF) != 0) {
-            printf("(-) Failed to encode %s\n", files[i]);
+        if (EncodeFile(input_files[i], output_path, extern_path, entry_path, labels, label_count, ICF, DCF) != 0) {
+            printf("(-) Failed to encode %s\n", input_files[i]);
             continue;
         }
-
-        printf("(+) Encoded %s successfully.\n", files[i]);
     }
 
-    printf("(+) SECOND PASS SUCCESS\n");
+    LogInfo("(+) SECOND PASS SUCCESS\n");
     return 0;
 }
 
