@@ -104,7 +104,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                 }
 
                 ASSEMBLER_FLAGS.append_to_ent = true;
-                fprintf(entry_fd, "%s: %07lu\n", found->name, found->address);
+                fprintf(entry_fd, "%s: %07zu\n", found->name, found->address);
                 LogDebug("Wrote entry directive to entries file!\n");
             }
         continue;

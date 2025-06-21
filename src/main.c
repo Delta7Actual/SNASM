@@ -6,30 +6,18 @@
 #include "../include/parser.h"
 #include "../include/io.h"
 
-#include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>   // For _mkdir
+#else
+#include <sys/stat.h> // For mkdir
+#include <sys/types.h>
+#endif
 
 // Function Prototypes
 void CleanAndExit(char **input_files, size_t files_size);
 int PreAssemble(char **input_files, size_t files_size);
 int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
 int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
-
-int EnsureOutputDirectory(const char *path) {
-    struct stat st = {0};
-
-    if (stat(path, &st) == -1) {
-        #ifdef _WIN32
-            if (_mkdir(path) != 0) {
-        #else
-            if (mkdir(path, 0755) != 0) {
-        #endif
-                perror("mkdir");
-                return 0;
-            }
-    }
-
-    return 1;
-}
 
 // Constructs the output path with the given extension
 int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension) {
@@ -47,7 +35,7 @@ int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char
     }
 
     // Construct the output path with the specified extension
-    if ((size_t)snprintf(dst, dst_size, "output/%s%s", trimmed_name, extension) >= dst_size) {
+    if ((size_t)snprintf(dst, dst_size, "%s%s", trimmed_name, extension) >= dst_size) {
         return STATUS_ERROR;  // Output path would exceed buffer size
     }
 
@@ -98,8 +86,6 @@ int main(int argc, char **argv) {
     if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("Will print symbol table...\n");
     if (ASSEMBLER_FLAGS.gen_entries) LogVerbose("Will generate entries file...\n");
     if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("Will generate externals file...\n");
-
-    EnsureOutputDirectory("output");
 
     // Pre-Assembler Stage
     if (PreAssemble(files, input_count) != 0) {
