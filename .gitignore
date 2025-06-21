@@ -1,6 +1,6 @@
 build/
 output/
-assembler
-assembler.exe
+SNASM
+SNASM.exe
 .env
 .vscode
