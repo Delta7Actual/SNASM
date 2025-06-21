@@ -1,7 +1,6 @@
 build/
-output/
 SNASM
 SNASM.exe
 .env
 .vscode
-.meta
+meta/
