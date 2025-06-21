@@ -18,10 +18,11 @@
 
 /// FILE DEFINITIONS ///
 #define INPUT_FILE_EXTENSION       ".as"
-#define OBJECT_FILE_EXTENSION      ".ob"
-#define EXTENDED_FILE_EXTENSION    ".am"
-#define ENTRIES_FILE_EXTENSION     ".ent"
-#define EXTERNALS_FILE_EXTENSION   ".ext"
+#define INPUT_FILE_EXTENSION_ALT   ".snasm"
+#define OBJECT_FILE_EXTENSION      ".sno"
+#define EXTENDED_FILE_EXTENSION    ".snm"
+#define ENTRIES_FILE_EXTENSION     ".sne"
+#define EXTERNALS_FILE_EXTENSION   ".snr"
 
 #define MAX_FILENAME_LENGTH        128
 #define MAX_EXTENSION_LENGTH       3
