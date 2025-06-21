@@ -165,7 +165,12 @@ int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], s
     LogDebug("Starting address params: IC = %u | DC = %u\n", IC, DC);
 
     for (size_t i = 0; i < files_size; i++) {
-        int status = BuildSymbolTable(input_files[i], labels, label_count);
+        char expanded_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+        if (GetOutputPath(input_files[i], expanded_path, sizeof(expanded_path), EXTENDED_FILE_EXTENSION) != 0) {
+            printf("(-) Error: Failed to get expanded path for %s\n", input_files[i]);
+            return STATUS_ERROR;
+        }
+        int status = BuildSymbolTable(expanded_path, labels, label_count);
         if (status != 0) {
             printf("(*) Symbol compilation for file '%s' failed, Exiting...\n", input_files[i]);
             return status;
@@ -204,28 +209,35 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
         char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+        char expanded_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
 
-        // Create .ob output path
+        // Create .snb output path
         if (GetOutputPath(output_path, write_path, sizeof(write_path), OBJECT_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .ob output path\n");
+            printf("(-) Error: could not build .snb output path\n");
             return STATUS_ERROR;
         }
 
-        // Create .ext output path
+        // Create .snr output path
         if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .ext output path\n");
+            printf("(-) Error: could not build .snr output path\n");
             return STATUS_ERROR;
         }
 
-        // Create .ent output path
+        // Create .sne output path
         if (GetOutputPath(output_path, entry_path, sizeof(entry_path), ENTRIES_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .ent output path\n");
+            printf("(-) Error: could not build .sne output path\n");
+            return STATUS_ERROR;
+        }
+
+        // Create .snm input path
+        if (GetOutputPath(input_files[i], expanded_path, sizeof(expanded_path), EXTENDED_FILE_EXTENSION) != 0) {
+            printf("(-) Error: could not build .snm output path\n");
             return STATUS_ERROR;
         }
 
         LogVerbose("Successfully generated output paths!\n");
 
-        int status = EncodeFile(input_files[i], write_path, extern_path, entry_path, labels, label_count, ICF, DCF);
+        int status = EncodeFile(expanded_path, write_path, extern_path, entry_path, labels, label_count, ICF, DCF);
         if (status != 0) {
             printf("(*) Object encoding for file '%s' failed, Exiting...\n", input_files[i]);
             return status;

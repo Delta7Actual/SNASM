@@ -73,81 +73,80 @@ int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count) 
  *      - Otherwise, the line is copied as-is.
  */
 int ExpandMacros(char *input_path, char *output_path, Macro macros[MAX_MACROS], size_t *macro_count) {
-    if (input_path == NULL || output_path == NULL || macros == NULL || macro_count == NULL) {
-        printf("ExpandMacros() Received NULL input(s)\n");
+    if (!input_path || !output_path || !macros || !macro_count) {
+        printf("ExpandMacros() received NULL input(s)\n");
         return STATUS_ERROR;
     }
 
     FILE *input_fd = fopen(input_path, "r");
-    if (input_fd == NULL) {
+    if (!input_fd) {
         LogInfo("ExpandMacros() failed to open input file %s\n", input_path);
         return STATUS_ERROR;
     }
 
     FILE *output_fd = fopen(output_path, "w");
-    if (output_fd == NULL) {
+    if (!output_fd) {
         LogInfo("ExpandMacros() failed to open output file %s\n", output_path);
         fclose(input_fd);
         return STATUS_ERROR;
     }
 
     char line[MAX_LINE_LENGTH] = {0};
-    int in_macro_declaration = 0;  // Tracks if we're inside a macro declaration
+    int in_macro_declaration = 0;
 
     while (fgets(line, MAX_LINE_LENGTH, input_fd)) {
-        /* Write empty lines directly to the output */
+        // Write empty lines directly
         if (line[0] == '\n' || line[0] == '\r') {
-            fprintf(output_fd, "%s", line);
-            LogDebug("Expanding empty line...\n");
+            //fprintf(output_fd, "%s", line);
+            LogDebug("Skipping empty line...\n");
             continue;
         }
 
-        /* Handle macro declaration boundaries */
+        // Macro declaration boundaries
         if (strncmp(line, MACRO_START, strlen(MACRO_START)) == 0 && isspace(line[strlen(MACRO_START)])) {
             in_macro_declaration = 1;
-            continue;  // Skip the macro start line
+            continue;
         }
         if (in_macro_declaration && strncmp(line, MACRO_END, strlen(MACRO_END)) == 0) {
             in_macro_declaration = 0;
-            continue;  // Skip the macro end line
+            continue;
         }
-        if (in_macro_declaration) {
-            continue;  // Skip all lines inside a macro declaration
+        if (in_macro_declaration) continue;
+
+        // Handle label + macro call (e.g. START: SETR1)
+        char *colon = strchr(line, ':');
+        char label_prefix[MAX_LINE_LENGTH] = {0};
+        char *macro_candidate = NULL;
+
+        if (colon) {
+            size_t label_len = colon - line + 1; // include ':'
+            strncpy(label_prefix, line, label_len);
+            label_prefix[label_len] = '\0';
+
+            macro_candidate = colon + 1;
+            while (isspace(*macro_candidate)) macro_candidate++; // skip spaces
+        } else {
+            macro_candidate = line;
         }
 
-        /* Skip leading whitespace to extract the first token */
-        size_t start = strspn(line, " \t");
-        size_t name_length = 0;
-        while (line[start + name_length] != '\0' && !isspace(line[start + name_length])) {
-            name_length++;
-        }
-
-        /* Extract the potential macro name */
-        char *macro_name = strndup(line + start, name_length);
-        if (macro_name == NULL) {
-            printf("ExpandMacros() Failed to allocate memory for macro name <-- %s\n", macro_name);
-            fclose(input_fd);
-            fclose(output_fd);
-            return STATUS_ERROR;
-        }
+        // Extract macro name
+        char macro_name[MAX_LINE_LENGTH] = {0};
+        sscanf(macro_candidate, "%s", macro_name);
 
         Macro *curr = FindMacro(macro_name, macros, macro_count);
-        free(macro_name);
 
-        if (curr != NULL) {
-            /* Macro call found: write its body to the output */
-            LogDebug("Found macro call for %s\n", curr->name);
+        if (curr) {
+            LogDebug("Found macro call for %s\n", macro_name);
             for (size_t i = 0; i < curr->line_count; i++) {
-                if (fprintf(output_fd, "%s", curr->body[i]) < 0) {
-                    LogInfo("ExpandMacros() Failed to write macro body to output!\n");
-                    fclose(input_fd);
-                    fclose(output_fd);
-                    return STATUS_ERROR;
+                if (i == 0 && label_prefix[0]) {
+                    fprintf(output_fd, "%s%s", label_prefix, curr->body[i]);
+                } else {
+                    fprintf(output_fd, "%s", curr->body[i]);
                 }
-                LogDebug("Successfully expanded macro for %s\n", curr->name);
+                LogDebug("Expanded macro line: %s\n", curr->body[i]);
             }
         } else {
-            // Not inside Macro, write as is
+            // Not a macro, write line as-is
             fprintf(output_fd, "%s", line);
             LogDebug("Expanding line...\n");
         }

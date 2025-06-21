@@ -24,14 +24,15 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     size_t extern_count = 0;
 
     while (fgets(line, MAX_LINE_LENGTH, file_fd) != NULL) {
-
         LogDebug("Curr: IC->%d/DC->%d\n", IC, DC);
 
-        // Skip leading spaces manually
-        char *ptr = line;
-        while (isspace((unsigned char)*ptr)) ptr++;
+        // Remove comment first
+        char *comment = strchr(line, COMMENT_DELIM);
+        if (comment) *comment = '\0';
 
-        if (*ptr == '\0') continue; // Empty or whitespace-only line
+        // Now trim whitespace on the cleaned line
+        char *ptr = TrimWhitespace(line);
+        if (*ptr == '\0') continue; // Line is empty or only spaces/comments
 
         // Handle .entry and .extern directives
         if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
@@ -50,7 +51,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 int isExternInFile = 0;
                 for (size_t i = 0; i < extern_count; i++) {
                     if (strncmp(existing->name, externals[i], strlen(existing->name)) == 0) {
-                        printf("(-) Label cannot be defined as both extern and entry in the same file! -> %s"
+                        printf("(-) Label %s cannot be defined as both extern and entry in the same file!\n"
                             , existing->name);
                         isExternInFile = 1;
                         break;
@@ -110,15 +111,15 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         }
         memset(curr, 0, sizeof(Label));
 
-        int label_status = AddLabel(line, curr);
+        int label_status = AddLabel(ptr, curr);
         if (label_status == STATUS_NO_RESULT) {
             // No label, either DS directives or instructions
             free(curr);
             
             // Handle `.data` and `.string` directives
-            if (strncmp(line, ISTRING, strlen(ISTRING)) == 0
-            || strncmp(line, IDATA, strlen(IDATA)) == 0) {
-                int values = HandleDSDirective(line, NULL);
+            if (strncmp(ptr, ISTRING, strlen(ISTRING)) == 0
+            || strncmp(ptr, IDATA, strlen(IDATA)) == 0) {
+                int values = HandleDSDirective(ptr, NULL);
                 if (values < 0) {
                     printf("Error in size calculation in line: %s", line);
                     status = STATUS_ERROR;
@@ -128,21 +129,21 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             }
             else { // Instruction or comment
                 int offset = 0;
-                while(isblank(line[offset])) offset++;
-                if (line[offset] == COMMENT_DELIM) continue;
+                while(isblank(ptr[offset])) offset++;
+                if (ptr[offset] == COMMENT_DELIM) continue;
 
-                char *clean_line = line + offset;
+                char *clean_line = ptr + offset;
                 char mnemonic[MAX_LINE_LENGTH] = {0};
 
                 sscanf(clean_line, "%s", mnemonic);
                 const Command *com = FindCommand(mnemonic);
                 if (!com) {
-                    printf("(-) Error: parsing instruction in line: %s", line);
+                    printf("(-) Error: parsing instruction in line: %s\n", line);
                     status = STATUS_ERROR;
                     continue;
                 }
 
-                int words = ValidateCommand(line + offset, com);
+                int words = ValidateCommand(ptr + offset, com);
                 if (words < 0) {
                     printf("(-) Error in size calculation in line: %s\n", line);
                     status = STATUS_ERROR;

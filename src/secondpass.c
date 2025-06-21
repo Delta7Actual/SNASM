@@ -236,10 +236,9 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         LogDebug("Wrote to data segment at %u!\n", curr_address-1);
     }
 
-    LogVerbose("Successfully encoded %s. Wrote %u words to output\n", input_path, icf + dcf - 101);
-    LogVerbose("Text-Section begins at %u, ends at %u\n", 100, icf -1);
-    if (data_segment[0] > 1)
-        LogVerbose("Data-Segment begins at %u, ends at %u\n", icf, icf + dcf - 1);
+    LogVerbose("Successfully encoded %s, Wrote %u words to output\n", input_path, icf + dcf - 100);
+    LogVerbose("Text-Section begins at %u, ends at %u\n", 100, icf -2);
+    LogVerbose("Data-Segment begins at %u, ends at %u\n", icf-1, curr_address-1);
 
     // Set append flag
     if (!ASSEMBLER_FLAGS.append_to_out) ASSEMBLER_FLAGS.append_to_out = true;
