@@ -23,7 +23,14 @@ int AddMacro(FILE *file_fd, Macro *macro) {
         if (!inMacro) {
             if (strncmp(line, MACRO_START, strlen(MACRO_START)) == 0) {
                 macro->name = GetMacroName(line);
-                if (macro->name == NULL) return STATUS_ERROR;
+                if (macro->name == NULL) {
+                    printf("(-) Error: Badly formatted macro definition! <-- %s", line);
+                    return STATUS_ERROR;
+                }
+                if (FindCommand(macro->name) != NULL) {
+                    printf("(-) Error: macro name cannot be a command! <-- %s", line);
+                    return STATUS_ERROR;
+                }
                 inMacro = 1;  // We are now inside a macro
             }
         }
@@ -56,7 +63,11 @@ int CleanUpMacro(Macro *macro) {
     for (size_t i = 0; i < macro->line_count; i++) {
         if (macro->body[i]) free(macro->body[i]);  // Free each line of the body
     }
-    free(macro);  // Free the macro structure itself
+
+    macro->body = NULL;
+    macro->name = NULL;
+    macro->line_count = 0;
+
     return 0;
 }
 

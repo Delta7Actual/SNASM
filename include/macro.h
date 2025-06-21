@@ -13,7 +13,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include "definitions.h"
-#include "io.h"
+#include "command.h"
+
 
 typedef struct s_macro
 {

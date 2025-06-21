@@ -53,7 +53,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
     // Data segment
     uint32_t *data_segment = calloc(dcf+1, sizeof(uint32_t));
     if (!data_segment) {
-        printf("Error allocating data segment!");
+        printf("(-) Error: failed to allocate data segment!");
         fclose(input_fd);
         fclose(output_fd);
         fclose(extern_fd);
@@ -99,7 +99,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                 
                 Label *found = FindLabel(ptr, labels, label_count);
                 if (!found) {
-                    printf("INVALID LABEL! --> %s\n", ptr);
+                    printf("(-) Error: Found .entry directive but couldn't find label definition! <-- %s\n", ptr);
                     continue;
                 }
 
@@ -119,7 +119,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         while (isspace(*ptr)) ptr++;
 
         // Handle instruction
-        const Command *comm = FindCommand(ptr);
+        char mnemonic[MAX_LINE_LENGTH] = {0};
+        sscanf(ptr, "%s", mnemonic);
+
+        const Command *comm = FindCommand(mnemonic);
         if (!comm) {
             LogDebug("Skipping non-command line %s\n", ptr);
             continue;
@@ -235,7 +238,8 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
 
     LogVerbose("Successfully encoded %s. Wrote %u words to output\n", input_path, icf + dcf - 101);
     LogVerbose("Text-Section begins at %u, ends at %u\n", 100, icf -1);
-    LogVerbose("Data-Segment begins at %u, ends at %u\n", icf, icf + dcf - 1);
+    if (data_segment[0] > 1)
+        LogVerbose("Data-Segment begins at %u, ends at %u\n", icf, icf + dcf - 1);
 
     // Set append flag
     if (!ASSEMBLER_FLAGS.append_to_out) ASSEMBLER_FLAGS.append_to_out = true;

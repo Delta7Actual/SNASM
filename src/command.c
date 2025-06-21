@@ -4,7 +4,7 @@ int DetermineAddressingModes(char *operand,uint8_t opCount);
 
 const Command *FindCommand(char *com_name) {
     for (int i = 0; i < COMMAND_COUNT; i++) {
-        if (strncmp(com_name, commands[i].name, strlen(commands[i].name)) == 0) {
+        if (strcmp(com_name, commands[i].name) == 0) {
             return &commands[i];
         }
     }
@@ -25,7 +25,7 @@ int ValidateCommand(char *com_line, const Command *comm) {
 
     int modes = DetermineAddressingModes(com_line + strlen(comm->name), comm->opcount);
     if (modes < 0) {
-        printf("Error in validating operands\n");
+        printf("(-) Error: Illegal operands for command at line: %s\n", com_line);
         return STATUS_ERROR;
     }
 
@@ -38,8 +38,13 @@ int ValidateCommand(char *com_line, const Command *comm) {
         words++;
     }
     if (comm->opcount != words - 1) return STATUS_ERROR; // Wrong opcount
-    if ((modes & SRC_REG) == SRC_REG) words--;
-    if ((modes & DST_REG) == DST_REG) words--;
+
+    bool has_reg = false;
+    if ((modes & SRC_REG) == SRC_REG) {
+        words--;
+        has_reg = true;
+    }
+    if ((modes & DST_REG) == DST_REG && !has_reg) words--;
 
     LogDebug("Command validated successfully. %d words\n", words);
     return words; // 1 word for command + 1 for each non register operand
@@ -76,10 +81,15 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
         ret |= SRC_REL;
     }
     // Register
-    else if (operand[offset] == 'r' && operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
-        offset += 2;
-        ops++;
-        ret |= SRC_REG;
+    else if (operand[offset] == 'r') {
+        if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
+            offset += 2;
+            ops++;
+            ret |= SRC_REG;
+        } else {
+            LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
+            return STATUS_ERROR;
+        }
     }
     // Direct
     else {
@@ -110,10 +120,15 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
             ops++;
             ret |= DST_REL;
         }
-        else if (operand[offset] == 'r' && operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
-            offset += 2;
-            ops++;
-            ret |= DST_REG;
+        else if (operand[offset] == 'r') {
+            if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
+                offset += 2;
+                ops++;
+                ret |= DST_REG;
+            } else {
+            LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
+            return STATUS_ERROR;
+        }
         }
         else {
             while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;

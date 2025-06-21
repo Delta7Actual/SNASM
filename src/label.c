@@ -92,6 +92,8 @@ int CleanUpLabel(Label *label) {
     LogDebug("Cleaning up label...");
     if (label == NULL) return STATUS_ERROR;
     if (label->name) free(label->name);
+    label->name = NULL;
     free(label);
+
     return 0;
 }

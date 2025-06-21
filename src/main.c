@@ -11,7 +11,35 @@ void CleanAndExit(char **input_files, size_t files_size);
 int PreAssemble(char **input_files, size_t files_size);
 int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
 int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count);
-int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension);
+
+// Constructs the output path with the given extension
+int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension) {
+    // Extract the base name
+    const char *base_name = strrchr(input_path, '/');
+    base_name = (base_name == NULL) ? input_path : base_name + 1;
+
+    // Remove the `.as` extension if it exists
+    char trimmed_name[MAX_FILENAME_LENGTH];
+    snprintf(trimmed_name, sizeof(trimmed_name), "%s", base_name);
+
+    char *dot = strrchr(trimmed_name, '.');
+    if (dot && (strcmp(dot, INPUT_FILE_EXTENSION) == 0 || strcmp(dot, INPUT_FILE_EXTENSION_ALT) == 0)) {
+        *dot = '\0';  // Remove .as or .snasm extension
+    }
+
+    // Construct the output path with the specified extension
+    if ((size_t)snprintf(dst, dst_size, "output/%s%s", trimmed_name, extension) >= dst_size) {
+        return STATUS_ERROR;  // Output path would exceed buffer size
+    }
+
+    return 0;
+}
+
+bool IsValidSourceFile(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if (!dot) return false;
+    return (strcmp(dot, INPUT_FILE_EXTENSION) == 0 || strcmp(dot, INPUT_FILE_EXTENSION_ALT) == 0);
+}
 
 char **files = NULL;
 int input_count = 0;
@@ -19,20 +47,32 @@ const char *output_path = NULL;
 
 int main(int argc, char **argv) {
 
+    // Parse flags
     if (ParseFlags(argc, argv, &files, &input_count) != 0) {
         return 1;
     }
 
+    // Handle -o flag
     if (ASSEMBLER_FLAGS.output_file != NULL) {
         output_path = ASSEMBLER_FLAGS.output_file;
     } else {
         output_path = "out";
     }
 
+    // Check for inputs
     if (input_count == 0) {
         printf("(-) No input files provided.\n");
         PrintHelp();
         return 1;
+    }
+
+    // Validate file extensions
+    for (int i = 0; i < input_count; i++) {
+        if (!IsValidSourceFile(files[i])) {
+            printf("(-) Error: Invalid file extension for '%s'. Only '.as' or '.snasm' are allowed.\n", files[i]);
+            CleanAndExit(files, input_count);
+            return EXIT_FAILURE;
+        }
     }
 
     LogInfo("--- PROGRAM START ---\n");
@@ -61,6 +101,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    // Cleanup
     CleanAndExit(files, input_count);
     LogInfo("--- PROGRAM END ---\n");
     return EXIT_SUCCESS;
@@ -77,8 +118,6 @@ void CleanAndExit(char **input_files, size_t files_size) {
 
 // Pre-Assemble: Expands macros and writes an intermediate .am file
 int PreAssemble(char **input_files, size_t files_size) {
-    LogVerbose("--- PROGRAM PREASSEMBLE ---\n");
-
     Macro macros[MAX_MACROS];
 
     for (size_t i = 0; i < files_size; i++) {
@@ -88,12 +127,12 @@ int PreAssemble(char **input_files, size_t files_size) {
 
         status = ParseMacros(input_files[i], macros, &count);
         if (status != 0) {
-            printf("(-) Error in macro parsing for file '%s': ParseMacros {%d}\n", input_files[i], status);
+            printf("(*) Macro parsing for file '%s' failed, Exiting...\n", input_files[i]);
             return status;
         }
 
         char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
-        if (GetOutputPath(input_files[i], write_path, sizeof(write_path), ".am") != 0) {
+        if (GetOutputPath(input_files[i], write_path, sizeof(write_path), EXTENDED_FILE_EXTENSION) != 0) {
             printf("(-) Error: Failed to construct output path for file '%s'\n", input_files[i]);
             return EXIT_FAILURE;
         }
@@ -102,7 +141,7 @@ int PreAssemble(char **input_files, size_t files_size) {
 
         status = ExpandMacros(input_files[i], write_path, macros, &count);
         if (status != 0) {
-            printf("(-) Error in macro expanding for file '%s': ExpandMacros {%d}\n", input_files[i], status);
+            printf("(*) Macro expanding for file '%s' failed, Exiting...\n", input_files[i]);
             return status;
         }
 
@@ -119,9 +158,10 @@ int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], s
     LogDebug("Starting address params: IC = %u | DC = %u\n", IC, DC);
 
     for (size_t i = 0; i < files_size; i++) {
-        if (BuildSymbolTable(input_files[i], labels, label_count) != 0) {
-            printf("(-) Error in first pass for file '%s'\n", input_files[i]);
-            return EXIT_FAILURE;
+        int status = BuildSymbolTable(input_files[i], labels, label_count);
+        if (status != 0) {
+            printf("(*) Symbol compilation for file '%s' failed, Exiting...\n", input_files[i]);
+            return status;
         }
         LogVerbose("Successfully Pre-Assembled file: %s\n", input_files[i]);
     }
@@ -159,28 +199,29 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
         char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
 
         // Create .ob output path
-        if (GetOutputPath(output_path, write_path, sizeof(write_path), ".ob") != 0) {
+        if (GetOutputPath(output_path, write_path, sizeof(write_path), OBJECT_FILE_EXTENSION) != 0) {
             printf("(-) Error: could not build .ob output path\n");
-            continue;
+            return STATUS_ERROR;
         }
 
         // Create .ext output path
-        if (GetOutputPath(output_path, extern_path, sizeof(extern_path), ".ext") != 0) {
+        if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
             printf("(-) Error: could not build .ext output path\n");
-            continue;
+            return STATUS_ERROR;
         }
 
         // Create .ent output path
-        if (GetOutputPath(output_path, entry_path, sizeof(entry_path), ".ent") != 0) {
+        if (GetOutputPath(output_path, entry_path, sizeof(entry_path), ENTRIES_FILE_EXTENSION) != 0) {
             printf("(-) Error: could not build .ent output path\n");
-            continue;
+            return STATUS_ERROR;
         }
 
         LogVerbose("Successfully generated output paths!\n");
 
-        if (EncodeFile(input_files[i], write_path, extern_path, entry_path, labels, label_count, ICF, DCF) != 0) {
-            printf("(-) Failed to encode %s\n", input_files[i]);
-            continue;
+        int status = EncodeFile(input_files[i], write_path, extern_path, entry_path, labels, label_count, ICF, DCF);
+        if (status != 0) {
+            printf("(*) Object encoding for file '%s' failed, Exiting...\n", input_files[i]);
+            return status;
         }
     }
 
@@ -188,7 +229,7 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
     // entr without extr = warning / extr without entr = error
     for (size_t i = 0; i < *label_count; i++) {
         if (labels[i].extr && !labels[i].extr_used) {
-            printf("(*) Error: Extern label %s was declared but never used!\n", labels[i].name);
+            printf("(-) Error: Extern label %s was declared but never defined!\n", labels[i].name);
         } else if (labels[i].entr) {
             LogDebug("Note: Entry label %s was declared%s\n",
                     labels[i].name,
@@ -197,29 +238,5 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
     }
 
     LogInfo("--- SECOND PASS SUCCESS ---\n");
-    return 0;
-}
-
-
-// Constructs the output path with the given extension
-int GetOutputPath(const char *input_path, char *dst, size_t dst_size, const char *extension) {
-    // Extract the base name
-    const char *base_name = strrchr(input_path, '/');
-    base_name = (base_name == NULL) ? input_path : base_name + 1;
-
-    // Remove the `.as` extension if it exists
-    char trimmed_name[MAX_FILENAME_LENGTH];
-    snprintf(trimmed_name, sizeof(trimmed_name), "%s", base_name);
-
-    char *dot = strrchr(trimmed_name, '.');
-    if (dot && strcmp(dot, ".as") == 0) {
-        *dot = '\0';  // Remove .as extension
-    }
-
-    // Construct the output path with the specified extension
-    if ((size_t)snprintf(dst, dst_size, "output/%s%s", trimmed_name, extension) >= dst_size) {
-        return STATUS_ERROR;  // Output path would exceed buffer size
-    }
-
     return 0;
 }

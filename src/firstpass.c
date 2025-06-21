@@ -12,6 +12,8 @@ uint32_t DCF = 0;
 int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_count) {
     if (!file_path || !labels || !label_count) return STATUS_ERROR;
 
+    int status = 0;
+
     FILE *file_fd = fopen(file_path, "r");
     if (!file_fd) return STATUS_ERROR;
 
@@ -38,6 +40,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
             if (*ptr == '\0') {
                 LogInfo("Error: Missing label in .entry directive\n");
+                status = STATUS_ERROR;
                 continue;
             }
 
@@ -69,6 +72,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
 
             if (*ptr == '\0') {
                 printf("Error: Missing label in .extern directive\n");
+                status = STATUS_ERROR;
                 continue;
             }
 
@@ -106,8 +110,8 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         }
         memset(curr, 0, sizeof(Label));
 
-        int status = AddLabel(line, curr);
-        if (status == STATUS_NO_RESULT) {
+        int label_status = AddLabel(line, curr);
+        if (label_status == STATUS_NO_RESULT) {
             // No label, either DS directives or instructions
             free(curr);
             
@@ -116,7 +120,8 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             || strncmp(line, IDATA, strlen(IDATA)) == 0) {
                 int values = HandleDSDirective(line, NULL);
                 if (values < 0) {
-                    printf("Error in size calculation in line: %s\n", line);
+                    printf("Error in size calculation in line: %s", line);
+                    status = STATUS_ERROR;
                     continue;
                 }
                 DC += values;
@@ -126,33 +131,41 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 while(isblank(line[offset])) offset++;
                 if (line[offset] == COMMENT_DELIM) continue;
 
-                const Command *com = FindCommand(line + offset);
+                char *clean_line = line + offset;
+                char mnemonic[MAX_LINE_LENGTH] = {0};
+
+                sscanf(clean_line, "%s", mnemonic);
+                const Command *com = FindCommand(mnemonic);
                 if (!com) {
-                    printf("Error parsing instruction in line: %s\n", line);
+                    printf("(-) Error: parsing instruction in line: %s", line);
+                    status = STATUS_ERROR;
                     continue;
                 }
 
                 int words = ValidateCommand(line + offset, com);
                 if (words < 0) {
-                    printf("Error in size calculation in line: %s\n", line);
+                    printf("(-) Error in size calculation in line: %s\n", line);
+                    status = STATUS_ERROR;
                     continue;
                 }
                 IC += words;
             }
             // Continue to next line
             continue;
-        } else if (status == STATUS_ERROR) {
+        } else if (label_status == STATUS_ERROR) {
             free(curr);
-            printf("ERROR IN LINE: %s\n", line);
+            printf("(-) Error: AddLabel failed with status:{-1} in line: %s", line);
+            status = STATUS_ERROR;
             continue;
         }
 
         // Locate the colon (`:`) manually
         char *rest = strchr(ptr, LABEL_DELIM);
         if (!rest) {
-            printf("Error, malformed label in line: %s\n", line);
+            printf("(-) Error: malformed label in line: %s\n", line);
             free(curr);
-            return STATUS_ERROR;
+            status = STATUS_ERROR;
+            continue;
         }
         rest++;  // Move past the colon
 
@@ -183,6 +196,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
             // Fully defined already
             printf("(-) Error: Multiple definitions of label: %s!\n", curr->name);
             free(curr);
+            status = STATUS_ERROR;
             continue;
         }
     }
@@ -190,20 +204,29 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         if (curr->type == E_DATA) {
             curr->address = DC;
             int values =  HandleDSDirective(rest, NULL);
-            if (values < 0) printf("Error calculating data size for label %s!, %s\n", curr->name, rest);
+            if (values < 0) {
+                printf("(-) Error: Failed to calculate data size for label %s!, %s\n", curr->name, rest);
+                status = STATUS_ERROR;
+            }
             else DC += values;
         } else {
             curr->address = IC;
-            const Command *com = FindCommand(rest);
+            
+            char mnemonic[MAX_LINE_LENGTH] = {0};
+            sscanf(rest, "%s", mnemonic);
+
+            const Command *com = FindCommand(mnemonic);
             if (com) {
                 int words = ValidateCommand(rest, com);
                 if (words > 0) {
                     IC += words;
                 } else {
-                    printf("Illegal command parameters in label: %s: %s\n", curr->name, rest);
+                    printf("(-) Error: Illegal command parameters in label: %s: %s\n", curr->name, rest);
+                    status = STATUS_ERROR;
                 }
             } else {
-                printf("Illegal command in label: %s!, %s\n", curr->name, rest);
+                printf("(-) Error: Illegal command in label: %s!, %s\n", curr->name, rest);
+                status = STATUS_ERROR;
             }
         }
 
@@ -219,7 +242,8 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
     for (size_t i = 0; i < entry_count; i++) {
         Label *entry = FindLabel(entries[i], labels, label_count);
         if (!entry) {
-            printf("Error: .entry label %s is not defined in this file!\n", entries[i]);
+            printf("(-) Error: .entry label %s is not defined in this file!\n", entries[i]);
+            status = STATUS_ERROR;
         } else {
             entry->entr = 1;
         }
@@ -227,12 +251,14 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
         free(entries[i]);
     }
 
-    LogVerbose("Generated symbol table for file %s.\n", file_path);
-    LogVerbose("Found %zu entry point(s) and %zu external reference(s)\n", entry_count, extern_count);
-    LogVerbose("Compiled %zu symbols in file %s\n", *label_count, file_path);
+    if (status == 0) {
+        LogVerbose("Generated symbol table for file %s.\n", file_path);
+        LogVerbose("Found %zu entry point(s) and %zu external reference(s)\n", entry_count, extern_count);
+        LogVerbose("Compiled %zu symbols in file %s\n", *label_count, file_path);
+    }
 
     fclose(file_fd);
-    return 0;
+    return status;
 }
 
 int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {

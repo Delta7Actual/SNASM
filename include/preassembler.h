@@ -8,7 +8,6 @@
 
 #include "macro.h"
 #include "parser.h"
-#include "command.h"
 
 // Returns 0 upon success, else ERRORCODE
 int ParseMacros(char *file_path, Macro macros[MAX_MACROS], size_t *macro_count);
