@@ -1,12 +1,11 @@
-; Designed to work together with good3.as
+; When using .extern and .entry it is important to assemble with -x and -e
 
-.extern UTILFUNC
-.entry START
+.extern UTILFUNC ; Defined in good3.as
+.entry ARR
 
 START:  mov #5, r1
-        jsr UTILFUNC
+        jsr UTILFUNC ; Defined in good3.as
         prn r1
         stop
 
-; Some local data
 ARR:    .data 3, 2, 1
