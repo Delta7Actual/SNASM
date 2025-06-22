@@ -3,4 +3,5 @@ SNASM
 SNASM.exe
 .env
 .vscode
-meta/
+.meta
+output/
