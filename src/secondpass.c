@@ -135,6 +135,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         uint8_t add_modes = (uint8_t)DetermineAddressingModes(ptr, comm->opcount); 
         int non_reg = EncodeCommand(ptr, comm, add_modes, &word);
         LogDebug("Encoded command word:\n");
+        
+        bool is_last_word = true;
+        if (non_reg > 0) is_last_word = false;
+
         if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
             LogDebug("Hex: 0x%07X | Bin: 0b", word);
             LogU32AsBin(word);
@@ -163,7 +167,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         // Now emit additional words
         if (src) {
             if (*src == '#') {
-                uint32_t imm = EncodeImm(src);
+                non_reg--;
+                is_last_word = (non_reg == 0);
+
+                uint32_t imm = EncodeImm(src, is_last_word);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, imm);
 
@@ -173,7 +180,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                     LogU32AsBin(imm);
                 }
             } else if (*src == '&') {
-                uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, extern_fd); // Skip '&'
+                non_reg--;
+                is_last_word = (non_reg == 0);
+
+                uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, extern_fd, is_last_word); // Skip '&'
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
@@ -183,7 +193,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                     LogU32AsBin(rel);
                 }
             } else if (*src != 'r') {
-                uint32_t dir = EncodeDir(src, labels, label_count, curr_address, extern_fd);
+                non_reg--;
+                is_last_word = (non_reg == 0);
+
+                uint32_t dir = EncodeDir(src, labels, label_count, curr_address, extern_fd, is_last_word);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, dir);
 
@@ -197,7 +210,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
 
         if (dst && (non_reg >= 1)) {
             if (*dst == '#') {
-                uint32_t imm = EncodeImm(dst);
+                non_reg--;
+                is_last_word = (non_reg == 0);
+
+                uint32_t imm = EncodeImm(dst, is_last_word);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, imm);
                 
@@ -207,7 +223,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                     LogU32AsBin(imm);
                 }
             } else if (*dst == '&') {
-                uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, extern_fd);
+                non_reg--;
+                is_last_word = (non_reg == 0);
+
+                uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, extern_fd, is_last_word);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
@@ -217,7 +236,10 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
                     LogU32AsBin(rel);
                 }
             } else if (*dst != 'r') {
-                uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, extern_fd);
+                non_reg--;
+                is_last_word = (non_reg == 0);
+                
+                uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, extern_fd, is_last_word);
                 fprintf(output_fd, "%07u : ", curr_address++);
                 WordToHex(output_fd, dir);
 

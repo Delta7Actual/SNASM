@@ -75,8 +75,9 @@
 #define MAX_LABEL_NAME        31
 
 /// OUTPUT FORMATTING ///
-#define WORD_SIZE             24  // Machine word size in bits
-#define WORD(x) (x & 0xFFFFFF)
+#define WORD_SIZE_LEGACY      24
+#define WORD_SIZE             32
+#define WORD(x) (ASSEMBLER_FLAGS.legacy_24_bit ? ((x) & 0xFFFFFF) : ((x) & 0xFFFFFFFF))
 
 /// SPECIAL CHARACTERS ///
 #define COMMENT_DELIM  ';'        // For skipping comments

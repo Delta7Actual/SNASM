@@ -82,10 +82,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    LogInfo("--- PROGRAM START ---\n");
-    if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("Will print symbol table...\n");
-    if (ASSEMBLER_FLAGS.gen_entries) LogVerbose("Will generate entries file...\n");
-    if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("Will generate externals file...\n");
+    LogInfo("--- PROGRAM START ---\n");\
+    if (ASSEMBLER_FLAGS.legacy_24_bit) LogVerbose("(*) Using legacy 24-bit assembling process...\n");
+    if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("(*) Will print symbol table...\n");
+    if (ASSEMBLER_FLAGS.gen_entries) LogVerbose("(*) Will generate entries file...\n");
+    if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("(*) Will generate externals file...\n");
 
     // Pre-Assembler Stage
     if (PreAssemble(files, input_count) != 0) {

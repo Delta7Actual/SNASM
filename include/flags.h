@@ -16,6 +16,7 @@ typedef struct flags_s {
     bool append_to_out;
     bool append_to_ent;
     bool append_to_ext;
+    bool legacy_24_bit;
 } Flags;
 
 extern Flags ASSEMBLER_FLAGS;

@@ -82,13 +82,36 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
     }
     // Register
     else if (operand[offset] == 'r') {
-        if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
-            offset += 2;
-            ops++;
-            ret |= SRC_REG;
+        if (ASSEMBLER_FLAGS.legacy_24_bit) {
+            if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
+                offset += 2;
+                ops++;
+                ret |= SRC_REG;
+            } else {
+                LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
+                return STATUS_ERROR;
+            }
         } else {
-            LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
-            return STATUS_ERROR;
+            offset++; // skip 'r'
+
+            int reg = 0;
+            int digits = 0;
+
+            while (isdigit(operand[offset])) {
+                reg = reg * 10 + (operand[offset] - '0');
+                offset++;
+                digits++;
+            
+                if (reg >= 64) break; // Stop early if reg out of range
+            }
+
+            if (digits > 0 && reg < 64) {
+                ops++;
+                ret |= SRC_REG;
+            } else {
+                LogDebug("Invalid register number after 'r': %.*s\n", digits, operand + offset - digits);
+                return STATUS_ERROR;
+            }
         }
     }
     // Direct
@@ -121,14 +144,37 @@ int DetermineAddressingModes(char *operand, uint8_t opCount) {
             ret |= DST_REL;
         }
         else if (operand[offset] == 'r') {
-            if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
-                offset += 2;
-                ops++;
-                ret |= DST_REG;
+            if (ASSEMBLER_FLAGS.legacy_24_bit) {
+                if (operand[offset + 1] >= '0' && operand[offset + 1] <= '7') {
+                    offset += 2;
+                    ops++;
+                    ret |= DST_REG;
+                } else {
+                    LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
+                    return STATUS_ERROR;
+                }
             } else {
-            LogDebug("Invalid register found: r%c\n", operand[offset + 1]);
-            return STATUS_ERROR;
-        }
+                offset++; // skip 'r'
+
+                int reg = 0;
+                int digits = 0;
+
+                while (isdigit(operand[offset])) {
+                    reg = reg * 10 + (operand[offset] - '0');
+                    offset++;
+                    digits++;
+                
+                    if (reg >= 64) break; // Stop early if reg out of range
+                }
+
+                if (digits > 0 && reg < 64) {
+                    ops++;
+                    ret |= DST_REG;
+                } else {
+                    LogDebug("Invalid register number after 'r': %.*s\n", digits, operand + offset - digits);
+                    return STATUS_ERROR;
+                }
+            }
         }
         else {
             while (operand[offset] && !isspace(operand[offset]) && operand[offset] != ',') offset++;

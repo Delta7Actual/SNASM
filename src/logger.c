@@ -40,9 +40,17 @@ void LogDebug(const char *fmt, ...) {
 
 void LogU32AsBin(uint32_t num) {
     num = WORD(num);
-    for (int i = 23; i >= 0; i--) {
-        putchar((num & (1 << i)) ? '1' : '0');
-        if (i % 4 == 0 && i != 0) putchar(' '); // Group by 4 bits
+    if (ASSEMBLER_FLAGS.legacy_24_bit) {
+        for (int i = 23; i >= 0; i--) {
+            putchar((num & (1 << i)) ? '1' : '0');
+            if (i % 4 == 0 && i != 0) putchar(' '); // Group by 4 bits
+        }
+    }
+    else {
+        for (int i = 31; i >= 0; i--) {
+            putchar((num & (1 << i)) ? '1' : '0');
+            if (i % 4 == 0 && i != 0) putchar(' '); // Group by 4 bits
+        }
     }
     putchar('\n');
 }
