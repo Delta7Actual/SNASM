@@ -4,16 +4,16 @@ SNASM is a simple assembler written in C for the Super-Neat Assembly language. I
 
 ## Features
 
-- **Macro Expansion:** Supports user-defined macros with `mcro`/`mcroend` blocks.
+- **Macro Expansion:** Supports user-defined macros with `mcro`/`mcroend` blocks ([Language Syntax](docs/language.md)).
 - **Two-Pass Assembly:** First pass builds the symbol table, second pass encodes instructions and data.
 - **Symbol Table:** Handles labels, entries, externals, and validates symbol usage.
-- **Custom Output:** Generates `.sno` (object), `.sne` (entries), and `.snr` (externals) files.
+- **Custom Output:** Generates `.sno` (object), `.sne` (entries), and `.snr` (externals) files ([Encoding Structure](docs/structure.md)).
 - **Verbose Logging:** Multiple log levels for debugging and verbose output.
 - **Cross-Platform:** Build scripts for both Linux (Makefile) and Windows (build.bat, Makefile.windows).
 
 ## Build Instructions From Source Code
 
-*(Pre-compiled binaries are available in the realeases section)
+*(Pre-compiled binaries are available in the releases section)*
 
 ### Requirements
 - GCC or compatible C compiler
@@ -66,7 +66,7 @@ You can build using either the batch script or the Windows Makefile.
 - `-x`, `--externals`      Output external references
 - `-e`, `--entries`        Output entries table
 - `-o`, `--output <file>`  Specify output file prefix
-- `-l`, `--legacy-24`      Use legacy 24-bit assembling process
+- `-l`, `--legacy-24`      Use legacy 24-bit assembling process ([Encoding Format](docs/structure.md))
 - `--version`              Show assembler version
 - `--help`                 Show help message
 
@@ -85,14 +85,26 @@ This will assemble `example.snasm`, expand macros, generate symbol tables, and p
 - `.sne` - Entries file (entry points)
 - `.snr` - Externals file (external references)
 
-## The Super-Neat Assembly Language (Full documentation coming soon)
+## The Super-Neat Assembly Language
 
-- **Labels:** Defined with `LABEL:`
-- **Directives:** `.data`, `.string`, `.entry`, `.extern`
-- **Macros:** Defined with `mcro name ... mcroend`
-- **Instructions:** See [include/command.h](include/command.h) for the full instruction set. (Full documentation coming soon)
+See the full language reference in [`docs/language.md`](docs/language.md).
 
-## Example
+This includes:
+- Label syntax
+- Directives: `.data`, `.string`, `.entry`, `.extern`
+- Macros: `mcro`, `mcroend`
+- Instructions, addressing modes, examples
+
+## Binary Encoding Format
+
+For a complete explanation of the machine-level instruction and operand word structure, see [`docs/structure.md`](docs/structure.md).
+
+Covers:
+- Word layout (32-bit and legacy 24-bit modes)
+- Addressing modes and operand formats
+- MARE bit meaning and layout
+
+## Simple Example
 
 ```assembly
 .entry MAIN
