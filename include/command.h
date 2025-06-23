@@ -15,7 +15,7 @@ typedef struct s_command {
     uint8_t addmodes;
 } Command;
 
-#define COMMAND_COUNT 26
+#define COMMAND_COUNT 25
 
 #define SRC_IMM (1<<0)
 #define SRC_DIR (1<<1)
@@ -53,10 +53,6 @@ static const Command commands[COMMAND_COUNT] = {
     {"bne",  S_OF(9,  2), 1, DST_DIR | DST_REL},
     {"jsr",  S_OF(9,  3), 1, DST_DIR | DST_REL},
 
-    // I/O
-    {"red",  S_OF(12, 0), 1, DST_DIR | DST_REG},
-    {"prn",  S_OF(13, 0), 1, DST_IMM | DST_DIR | DST_REG},
-
     // Control
     {"rts",  S_OF(14, 0), 0, 0}, // No operands
     {"stop", S_OF(15, 0), 0, 0}, // No operands
@@ -75,7 +71,10 @@ static const Command commands[COMMAND_COUNT] = {
     {"pop",  S_OF(10, 1), 1, DST_DIR | DST_REG},
 
     // No-op
-    {"nop",  S_OF(15, 1), 0, 0}  // No operands
+    {"nop",  S_OF(15, 1), 0, 0},  // No operands
+
+    // Interrupt
+    {"int", S_OF(16, 0), 0, 0} // No operands
 };
 
 const Command *FindCommand(char *com_name);
