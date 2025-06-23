@@ -34,13 +34,15 @@ typedef struct s_command {
 // Command table
 static const Command commands[COMMAND_COUNT] = {
     // Basic move and arithmetic
-    {"mov",  S_OF(0,  0), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
+    {"mov",  S_OF(0,  0), 2, SRC_IMM | SRC_DIR | SRC_REG | SRC_REL | DST_DIR | DST_REG | SRC_REL},
     {"cmp",  S_OF(1,  0), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_IMM | DST_DIR | DST_REG},
     {"add",  S_OF(2,  1), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
     {"sub",  S_OF(2,  2), 2, SRC_IMM | SRC_DIR | SRC_REG | DST_DIR | DST_REG},
 
     // Memory/address
     {"lea",  S_OF(4,  0), 2, SRC_DIR | DST_DIR | DST_REG},
+    {"lod",  S_OF(4,  1), 2, SRC_REG | SRC_IMM | SRC_DIR | DST_REG | DST_DIR},
+    {"str",  S_OF(4,  2), 2, SRC_REG | SRC_IMM | SRC_DIR | DST_REG | DST_DIR},
 
     // Unary operations
     {"clr",  S_OF(5,  1), 1, DST_DIR | DST_REG},
