@@ -66,6 +66,7 @@ You can build using either the batch script or the Windows Makefile.
 - `-x`, `--externals`      Output external references
 - `-e`, `--entries`        Output entries table
 - `-o`, `--output <file>`  Specify output file prefix
+- `-l`, `--legacy-24`      Use legacy 24-bit assembling process
 - `--version`              Show assembler version
 - `--help`                 Show help message
 
@@ -79,9 +80,10 @@ This will assemble `example.snasm`, expand macros, generate symbol tables, and p
 
 ## Output Files
 
-- `.sno` — Object file (machine code)
-- `.sne` — Entries file (entry points)
-- `.snr` — Externals file (external references)
+- `.snm` - Input file with macros expanded (Expanded input)
+- `.sno` - Object file (machine code)
+- `.sne` - Entries file (entry points)
+- `.snr` - Externals file (external references)
 
 ## The Super-Neat Assembly Language (Full documentation coming soon)
 
