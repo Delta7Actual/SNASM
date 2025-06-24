@@ -225,7 +225,7 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
     }
     // Create .sne output path
     if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
-        printf("(-) Error: could not build .snr output path\n");
+        printf("(-) Error: could not build .sne output path\n");
         return STATUS_ERROR;
     }
 
