@@ -277,7 +277,7 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
                 labels[i].extr ? " and also marked extern" : "");
                 
             // Write entries to output
-            fprintf(output_fd, "%s : %07zu", labels[i].name, labels[i].address);
+            fprintf(output_fd, "%s : %07zu\n", labels[i].name, labels[i].address);
             LogDebug("Appended entry label at %zu to output!\n", labels[i].address);
         }
     }
