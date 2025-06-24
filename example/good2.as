@@ -5,7 +5,7 @@
 
 START:  mov #5, r1
         jsr UTILFUNC ; Defined in good3.as
-        prn r1
+        inc r1
         stop
 
 ARR:    .data 3, 2, 1
