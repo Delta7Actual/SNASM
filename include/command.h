@@ -15,7 +15,7 @@ typedef struct s_command {
     uint8_t addmodes;
 } Command;
 
-#define COMMAND_COUNT 25
+#define COMMAND_COUNT 27
 
 #define SRC_IMM (1<<0)
 #define SRC_DIR (1<<1)
