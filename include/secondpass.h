@@ -6,6 +6,6 @@
 #include "parser.h"
 #include "label.h"
 
-int EncodeFile(char *input_path, char *output_path, char *extern_path, char *entry_path, Label *labels, size_t *label_count, uint32_t icf, uint32_t dcf);
+int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *labels, size_t *label_count, uint32_t *data_segment, uint32_t icf, uint32_t dcf);
 
 #endif

@@ -58,11 +58,17 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                     }
                 } 
                 
-                if (!isExternInFile) existing->entr = 1;
+                if (!isExternInFile) {
+                    entries[entry_count] = strdup(existing->name);
+                    entry_count++;
+                    LogDebug("Parsed entry directive\n");
+                    ASSEMBLER_FLAGS.entry_point_exists = true;
+                }
             } else {
                 entries[entry_count] = strdup(entry_label);
                 entry_count++;
                 LogDebug("Parsed entry directive\n");
+                ASSEMBLER_FLAGS.entry_point_exists = true;
             }
             continue;
         }
@@ -266,13 +272,23 @@ int ValidateSymbolTable(Label labels[MAX_LABELS], size_t *label_count) {
     if (!labels || !label_count) return STATUS_ERROR;
 
     int status = 0;
+    bool is_start = false;
     for (size_t i = 0; i < *label_count; i++) {
+        if (labels[i].entr && strcmp(labels[i].name, "START") == 0) {
+            LogDebug("Found entry point START!\n");
+            is_start = true;
+            ASSEMBLER_FLAGS.start_exists = true;
+        }
         if (labels[i].entr != labels[i].extr) {
             status++;
             LogDebug("Warning: Failed to find matching %s for label %s in program!\n", 
             (labels[i].entr == 0) ? ".entry" : ".extern", labels[i].name);
         }
         if (labels[i].type == E_DATA) labels[i].address += ICF;
+    }
+
+    if (!is_start) {
+        LogInfo("(*) Warning: Could not find START in program!\n");
     }
 
     return status;

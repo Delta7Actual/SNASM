@@ -21,8 +21,7 @@
 #define INPUT_FILE_EXTENSION_ALT   ".snasm"
 #define OBJECT_FILE_EXTENSION      ".sno"
 #define EXTENDED_FILE_EXTENSION    ".snm"
-#define ENTRIES_FILE_EXTENSION     ".sne"
-#define EXTERNALS_FILE_EXTENSION   ".snr"
+#define EXTERNALS_FILE_EXTENSION   ".sne"
 
 #define MAX_FILENAME_LENGTH        128
 #define MAX_EXTENSION_LENGTH       3

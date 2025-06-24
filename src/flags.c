@@ -3,14 +3,13 @@
 Flags ASSEMBLER_FLAGS = {0};
 
 void PrintHelp() {
-    printf("Usage: ./assembler [options] input.as input2.as ...\n");
+    printf("Usage: ./SNASM [options] input.as input2.as ...\n");
     printf("Options:\n");
     printf("  -v, --verbose        Enable verbose logging\n");
     printf("  -d, --debug          Enable debug-level logging\n");
     printf("  -q, --quiet          Suppress all logging\n");
     printf("  -s, --symbols        Output symbol table\n");
     printf("  -x, --externals      Output external references\n");
-    printf("  -e, --entries        Output entries table\n");
     printf("  -o, --output <file>  Specify output file\n");
     printf("  -l  --legacy-24      Use Legacy encoding for a 24-bit architecture\n");
     printf("      --version        Show assembler version\n");
@@ -22,7 +21,7 @@ void PrintVersion(void) {
         "SNASM: Super-Neat Assembler\n"
         "- Developed and maintained by Dror Sheffer\n"
         "- Built for Super-Neat Assembly (See github for details)\n"
-        "- VERSION: (v1.0.0)\n"
+        "- VERSION: (v2.1.0)\n"
     );
 }
 
@@ -45,8 +44,6 @@ int ParseFlags(int argc, char **argv, char ***input_files, int *input_count) {
             ASSEMBLER_FLAGS.show_symbols = true;
         } else if (strcmp(arg, "-x") == 0 || strcmp(arg, "--externals") == 0) {
             ASSEMBLER_FLAGS.gen_externals = true;
-        } else if (strcmp(arg, "-e") == 0 || strcmp(arg, "--entries") == 0) {
-            ASSEMBLER_FLAGS.gen_entries = true;
         } else if (strcmp(arg, "-l") == 0 || strcmp(arg, "--legacy-24") == 0) {
             ASSEMBLER_FLAGS.legacy_24_bit = true;
         } else if (strcmp(arg, "--help") == 0) {

@@ -2,8 +2,8 @@
 
 uint32_t curr_address = 100;
 
-int EncodeFile(char *input_path, char *output_path, char *extern_path, char *entry_path, Label *labels, size_t *label_count, uint32_t icf, uint32_t dcf) {
-    if (!input_path || !output_path || !labels || !label_count) return STATUS_ERROR;
+int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *labels, size_t *label_count, uint32_t *data_segment, uint32_t icf, uint32_t dcf) {
+    if (!input_path || !output_path || !extern_path || !labels || !label_count) return STATUS_ERROR;
 
     FILE *input_fd = fopen(input_path, "r");
     if (!input_fd) {
@@ -32,36 +32,21 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         }
     }
 
-    FILE *entry_fd = NULL;
-    if (ASSEMBLER_FLAGS.gen_entries) {
-        if (ASSEMBLER_FLAGS.append_to_ent) entry_fd = fopen(entry_path, "a");
-        else entry_fd = fopen(entry_path, "w");
-        if (!entry_fd) {
-            printf("(-) Failed to open entry file: %s\n", entry_path);
-            fclose(input_fd);
-            fclose(output_fd);
-            if (extern_fd) fclose(extern_fd);
-            return STATUS_ERROR;
-        }
-    }
+    // FILE *entry_fd = NULL;
+    // if (ASSEMBLER_FLAGS.append_to_ent) entry_fd = fopen(entry_path, "a");
+    // else entry_fd = fopen(entry_path, "w");
+    // if (!entry_fd) {
+    //     printf("(-) Failed to open entry file: %s\n", entry_path);
+    //     fclose(input_fd);
+    //     fclose(output_fd);
+    //     if (extern_fd) fclose(extern_fd);
+    //     return STATUS_ERROR;
+    // }
 
     if (!ASSEMBLER_FLAGS.append_to_out) {
-        fprintf(output_fd, "%u | %u\n", icf-100, dcf);
+        fprintf(output_fd, "%u|%u\n", icf-100, dcf);
         LogDebug("Wrote header to output: %u | %u\n", icf, dcf);
     }
-
-    // Data segment
-    uint32_t *data_segment = calloc(dcf+1, sizeof(uint32_t));
-    if (!data_segment) {
-        printf("(-) Error: failed to allocate data segment!");
-        fclose(input_fd);
-        fclose(output_fd);
-        fclose(extern_fd);
-        fclose(entry_fd);
-        return STATUS_ERROR;
-    }
-
-    data_segment[0] = 1; // Start from idx = 1
 
     char line[MAX_LINE_LENGTH] = {0};
     while (fgets(line, MAX_LINE_LENGTH, input_fd) != NULL) {
@@ -91,24 +76,24 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
             continue;
         }
 
-        // If is a .entry directive, add to .ent
-        if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
-            if (ASSEMBLER_FLAGS.gen_entries) {
-                ptr += strlen(IENTRY);
-                while (isspace(*ptr)) ptr++;
+        // // If is a .entry directive, add to .ent
+        // if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
+        //     if (ASSEMBLER_FLAGS.gen_entries) {
+        //         ptr += strlen(IENTRY);
+        //         while (isspace(*ptr)) ptr++;
                 
-                Label *found = FindLabel(ptr, labels, label_count);
-                if (!found) {
-                    printf("(-) Error: Found .entry directive but couldn't find label definition! <-- %s\n", ptr);
-                    continue;
-                }
+        //         Label *found = FindLabel(ptr, labels, label_count);
+        //         if (!found) {
+        //             printf("(-) Error: Found .entry directive but couldn't find label definition! <-- %s\n", ptr);
+        //             continue;
+        //         }
 
-                ASSEMBLER_FLAGS.append_to_ent = true;
-                fprintf(entry_fd, "%s: %07zu\n", found->name, found->address);
-                LogDebug("Wrote entry directive to entries file!\n");
-            }
-        continue;
-        }
+        //         ASSEMBLER_FLAGS.append_to_ent = true;
+        //         fprintf(entry_fd, "%s: %07zu\n", found->name, found->address);
+        //         LogDebug("Wrote entry directive to entries file!\n");
+        //     }
+        // continue;
+        // }
 
         // If it is a DS directive, add to data section
         if (strncmp(ptr, ISTRING, strlen(ISTRING)) == 0
@@ -252,15 +237,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
         }
     }
 
-    for (uint32_t i = 1; i < data_segment[0]; i++) {
-        fprintf(output_fd, "%07u : ", curr_address++);
-        WordToHex(output_fd, data_segment[i]);
-        LogDebug("Wrote to data segment at %u!\n", curr_address-1);
-    }
-
-    LogVerbose("Successfully encoded %s, Wrote %u words to output\n", input_path, icf + dcf - 100);
-    LogVerbose("Text-Section begins at %u, ends at %u\n", 100, icf -2);
-    LogVerbose("Data-Segment begins at %u, ends at %u\n", icf-1, curr_address-1);
+    LogVerbose("Successfully encoded %s - Wrote %u words to output\n", input_path,curr_address-100);
 
     // Set append flag
     if (!ASSEMBLER_FLAGS.append_to_out) ASSEMBLER_FLAGS.append_to_out = true;
@@ -269,9 +246,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, char *ent
     fclose(input_fd);
     fclose(output_fd);
     if (extern_fd) fclose(extern_fd);
-    if (entry_fd)  fclose(entry_fd);
+    // if (entry_fd)  fclose(entry_fd);
 
-    free(data_segment);
-    
-    return 0;
+    return curr_address-100;
 }

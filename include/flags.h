@@ -9,10 +9,11 @@
 #include "definitions.h"
 
 typedef struct flags_s {
+    bool start_exists;
     bool show_symbols;
     bool gen_externals;
-    bool gen_entries;
     const char *output_file;
+    bool entry_point_exists;
     bool append_to_out;
     bool append_to_ent;
     bool append_to_ext;

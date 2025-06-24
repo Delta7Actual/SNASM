@@ -85,7 +85,6 @@ int main(int argc, char **argv) {
     LogInfo("--- PROGRAM START ---\n");\
     if (ASSEMBLER_FLAGS.legacy_24_bit) LogVerbose("(*) Using legacy 24-bit assembling process...\n");
     if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("(*) Will print symbol table...\n");
-    if (ASSEMBLER_FLAGS.gen_entries) LogVerbose("(*) Will generate entries file...\n");
     if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("(*) Will generate externals file...\n");
 
     // Pre-Assembler Stage
@@ -181,7 +180,7 @@ int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], s
 
     ICF = IC;
     int symbol_status = ValidateSymbolTable(labels, label_count); 
-    if (symbol_status != 0) {
+    if (symbol_status > 0) {
         LogDebug("Warning: Found %u warnings in symbol validation, will re-check in second pass...\n", symbol_status);
     }
     DCF = DC;
@@ -200,35 +199,41 @@ int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], s
         printf("    ----------------------------------------------------------------------\n");
     }
 
+    if (symbol_status < 0) { // No entry point found
+        printf("(-) Error: Couldn't find entry point to program!\n");
+        return STATUS_ERROR;
+    }
+
     LogInfo("--- FIRST PASS SUCCESS ---\n");
     LogVerbose("Current address params IC = %u , DC = %u\n", IC, DC);
     return 0;
 }
 
 int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], size_t *label_count) {
+
+    // Data segment
+    uint32_t *data_segment = calloc(DCF+1, sizeof(uint32_t));
+    data_segment[0] = 1; // Start from idx = 1
+
+    char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+    char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+
+    // Create .sno output path
+    if (GetOutputPath(output_path, write_path, sizeof(write_path), OBJECT_FILE_EXTENSION) != 0) {
+        printf("(-) Error: could not build .sno output path\n");
+        return STATUS_ERROR;
+    }
+    // Create .sne output path
+    if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
+        printf("(-) Error: could not build .snr output path\n");
+        return STATUS_ERROR;
+    }
+
+    LogVerbose("Successfully generated output paths!\n");
+
+    int data_addr = 0;
     for (size_t i = 0; i < files_size; i++) {
-        char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
-        char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
-        char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
         char expanded_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
-
-        // Create .snb output path
-        if (GetOutputPath(output_path, write_path, sizeof(write_path), OBJECT_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .snb output path\n");
-            return STATUS_ERROR;
-        }
-
-        // Create .snr output path
-        if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .snr output path\n");
-            return STATUS_ERROR;
-        }
-
-        // Create .sne output path
-        if (GetOutputPath(output_path, entry_path, sizeof(entry_path), ENTRIES_FILE_EXTENSION) != 0) {
-            printf("(-) Error: could not build .sne output path\n");
-            return STATUS_ERROR;
-        }
 
         // Create .snm input path
         if (GetOutputPath(input_files[i], expanded_path, sizeof(expanded_path), EXTENDED_FILE_EXTENSION) != 0) {
@@ -236,15 +241,31 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
             return STATUS_ERROR;
         }
 
-        LogVerbose("Successfully generated output paths!\n");
-
-        int status = EncodeFile(expanded_path, write_path, extern_path, entry_path, labels, label_count, ICF, DCF);
-        if (status != 0) {
+        int status = EncodeFile(expanded_path, write_path, extern_path, labels, label_count, data_segment, ICF, DCF);
+        if (status < 0) {
             printf("(*) Object encoding for file '%s' failed, Exiting...\n", input_files[i]);
             return status;
         }
+        data_addr = status;
     }
 
+    FILE *output_fd = fopen(write_path, "a");
+    if (!output_fd) {
+        printf("(-) Error: could not open output path!\n");
+        return STATUS_ERROR;
+    }
+
+    data_addr += 100;
+    for (uint32_t i = 1; i < data_segment[0]; i++) {
+        fprintf(output_fd, "%07u : ", data_addr++);
+        WordToHex(output_fd, data_segment[i]);
+        LogDebug("Wrote to data segment at %u!\n", data_addr-1);
+    }
+    fprintf(output_fd, "///\n"); // Seperate object code from entries
+
+    LogVerbose("Text-Section begins at %u, ends at %u\n", 100, ICF -2);
+    LogVerbose("Data-Segment begins at %u, ends at %u\n", ICF-1, data_addr-1);
+    
     // Re-check labels table
     // entr without extr = warning / extr without entr = error
     for (size_t i = 0; i < *label_count; i++) {
@@ -252,11 +273,17 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
             printf("(-) Error: Extern label %s was declared but never defined!\n", labels[i].name);
         } else if (labels[i].entr) {
             LogDebug("Note: Entry label %s was declared%s\n",
-                    labels[i].name,
-                    labels[i].extr ? " and also marked extern" : "");
+                labels[i].name,
+                labels[i].extr ? " and also marked extern" : "");
+                
+            // Write entries to output
+            fprintf(output_fd, "%s : %07zu", labels[i].name, labels[i].address);
+            LogDebug("Appended entry label at %zu to output!\n", labels[i].address);
         }
     }
-
+    
     LogInfo("--- SECOND PASS SUCCESS ---\n");
+    free(data_segment);
+    fclose(output_fd);
     return 0;
 }
