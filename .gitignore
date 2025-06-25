@@ -5,3 +5,6 @@ SNASM.exe
 .vscode
 .meta
 output/
+.sno
+.snm
+.snr
