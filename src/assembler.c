@@ -261,7 +261,6 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
         WordToHex(output_fd, data_segment[i]);
         LogDebug("Wrote to data segment at %u!\n", data_addr-1);
     }
-    fprintf(output_fd, "///\n"); // Seperate object code from entries
 
     LogVerbose("Text-Section begins at %u, ends at %u\n", 100, ICF -2);
     LogVerbose("Data-Segment begins at %u, ends at %u\n", ICF-1, data_addr-1);

@@ -89,7 +89,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
         //         }
 
         //         ASSEMBLER_FLAGS.append_to_ent = true;
-        //         fprintf(entry_fd, "%s: %07zu\n", found->name, found->address);
+        //         fprintf(entry_fd, "%s: %08zu\n", found->name, found->address);
         //         LogDebug("Wrote entry directive to entries file!\n");
         //     }
         // continue;
@@ -125,12 +125,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
         if (non_reg > 0) is_last_word = false;
 
         if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-            LogDebug("Hex: 0x%07X | Bin: 0b", word);
+            LogDebug("Hex: 0x%08X | Bin: 0b", word);
             LogU32AsBin(word);
         }
 
         // Emit first word
-        fprintf(output_fd, "%07u : ", curr_address++);
+        fprintf(output_fd, "%08u : ", curr_address++);
         WordToHex(output_fd, word);
         LogDebug("Wrote command word at %u to output.\n", curr_address);
 
@@ -156,12 +156,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
 
                 uint32_t imm = EncodeImm(src, is_last_word);
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, imm);
 
                 LogDebug("Encoded immediate operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", imm);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", imm);
                     LogU32AsBin(imm);
                 }
             } else if (*src == '&') {
@@ -169,12 +169,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
 
                 uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, extern_fd, is_last_word); // Skip '&'
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
                 LogDebug("Encoded relative operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", rel);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", rel);
                     LogU32AsBin(rel);
                 }
             } else if (*src != 'r') {
@@ -182,12 +182,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
 
                 uint32_t dir = EncodeDir(src, labels, label_count, curr_address, extern_fd, is_last_word);
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, dir);
 
                 LogDebug("Encoded direct operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", dir);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", dir);
                     LogU32AsBin(dir);
                 }
             }
@@ -199,12 +199,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
 
                 uint32_t imm = EncodeImm(dst, is_last_word);
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, imm);
                 
                 LogDebug("Encoded immediate operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", imm);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", imm);
                     LogU32AsBin(imm);
                 }
             } else if (*dst == '&') {
@@ -212,12 +212,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
 
                 uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, extern_fd, is_last_word);
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
                 LogDebug("Encoded relative operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", rel);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", rel);
                     LogU32AsBin(rel);
                 }
             } else if (*dst != 'r') {
@@ -225,12 +225,12 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 is_last_word = (non_reg == 0);
                 
                 uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, extern_fd, is_last_word);
-                fprintf(output_fd, "%07u : ", curr_address++);
+                fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, dir);
 
                 LogDebug("Encoded direct operand at %u:\n", curr_address-1);
                 if (CURRENT_LOG_LEVEL >= LOG_DEBUG) {
-                    LogDebug("Hex: 0x%06X | Bin: 0b", dir);
+                    LogDebug("Hex: 0x%08X | Bin: 0b", dir);
                     LogU32AsBin(dir);
                 }
             }
