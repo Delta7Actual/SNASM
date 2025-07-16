@@ -61,6 +61,7 @@ int BuildSymbolTable(char *file_path, Label labels[MAX_LABELS], size_t *label_co
                 if (!isExternInFile) {
                     entries[entry_count] = strdup(existing->name);
                     entry_count++;
+                    existing->entr = true;
                     LogDebug("Parsed entry directive\n");
                     ASSEMBLER_FLAGS.entry_point_exists = true;
                 }

@@ -13,12 +13,14 @@ typedef enum e_ltype {
 } LType;
 
 typedef struct s_symbol {
-    char *name;
-    size_t address;
-    LType type;
-    bool entr;
-    bool extr;
-    bool extr_used;
+    char                         *name;
+    size_t                     address;
+    LType                         type;
+    bool                          entr;
+    bool                          extr;
+    bool                     extr_used;
+    uint32_t used_at[MAX_EXTERN_USAGE];
+    uint8_t                  use_count;
 } Label;
 
 Label *FindLabel(char *name, Label labels[MAX_LABELS], size_t *label_count);
