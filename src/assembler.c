@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     LogInfo("--- PROGRAM START ---\n");\
     if (ASSEMBLER_FLAGS.legacy_24_bit) LogVerbose("(*) Using legacy 24-bit assembling process...\n");
     if (ASSEMBLER_FLAGS.show_symbols) LogVerbose("(*) Will print symbol table...\n");
-    if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("(*) Will generate externals file...\n");
+    if (ASSEMBLER_FLAGS.gen_externals) LogVerbose("(*) Will append external usages...\n");
 
     // Pre-Assembler Stage
     if (PreAssemble(files, input_count) != 0) {
@@ -106,6 +106,21 @@ int main(int argc, char **argv) {
     if (SecondPass(files, input_count, labels, &label_count) != 0) {
         CleanAndExit(files, input_count);
         return EXIT_FAILURE;
+    }
+
+    // Display symbol table
+    if (ASSEMBLER_FLAGS.show_symbols > 0) {
+    printf("Displaying symbol table\n");
+        for (size_t i = 0; i < label_count; i++) {
+            printf("    -----------------------------------------------------------------------\n    |Label:%-8s|Addr:%08zu|Entry:%d|Extern:%d|Extern Used:%d|Type:%s|\n",
+                labels[i].name,
+                labels[i].address,
+                labels[i].entr,
+                labels[i].extr,
+                labels[i].extr_used,
+                (labels[i].type == E_CODE) ? "CODE" : "DATA");
+            }
+        printf("    -----------------------------------------------------------------------\n");
     }
 
     // Cleanup
@@ -184,20 +199,6 @@ int FirstPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], s
         LogDebug("Warning: Found %u warnings in symbol validation, will re-check in second pass...\n", symbol_status);
     }
     DCF = DC;
-    
-    if (ASSEMBLER_FLAGS.show_symbols > 0) {
-    printf("Displaying symbol table\n");
-        for (size_t i = 0; i < *label_count; i++) {
-            printf("    ----------------------------------------------------------------------\n    |Label:%-8s|Addr:%07zu|Entry:%d|Extern:%d|Extern Used:%d|Type:%s|\n",
-                labels[i].name,
-                labels[i].address,
-                labels[i].entr,
-                labels[i].extr,
-                labels[i].extr_used,
-                (labels[i].type == E_CODE) ? "CODE" : "DATA");
-            }
-        printf("    ----------------------------------------------------------------------\n");
-    }
 
     if (symbol_status < 0) { // No entry point found
         printf("(-) Error: Couldn't find entry point to program!\n");
@@ -215,17 +216,23 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
     uint32_t *data_segment = calloc(DCF+1, sizeof(uint32_t));
     data_segment[0] = 1; // Start from idx = 1
 
-    char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+    char write_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH]  = {0};
     char extern_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH] = {0};
+    char entry_path[MAX_FILENAME_LENGTH + MAX_EXTENSION_LENGTH]  = {0};
 
     // Create .sno output path
     if (GetOutputPath(output_path, write_path, sizeof(write_path), OBJECT_FILE_EXTENSION) != 0) {
         printf("(-) Error: could not build .sno output path\n");
         return STATUS_ERROR;
     }
-    // Create .sne output path
+    // Create .snext output path
     if (GetOutputPath(output_path, extern_path, sizeof(extern_path), EXTERNALS_FILE_EXTENSION) != 0) {
-        printf("(-) Error: could not build .sne output path\n");
+        printf("(-) Error: could not build .snext output path\n");
+        return STATUS_ERROR;
+    }
+    // Create .snent output path
+    if (GetOutputPath(output_path, entry_path, sizeof(entry_path), ENTRIES_FILE_EXTENSION) != 0) {
+        printf("(-) Error: could not build .snent output path\n");
         return STATUS_ERROR;
     }
 
@@ -241,7 +248,7 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
             return STATUS_ERROR;
         }
 
-        int status = EncodeFile(expanded_path, write_path, extern_path, labels, label_count, data_segment, ICF, DCF);
+        int status = EncodeFile(expanded_path, write_path, labels, label_count, data_segment, ICF, DCF);
         if (status < 0) {
             printf("(*) Object encoding for file '%s' failed, Exiting...\n", input_files[i]);
             return status;
@@ -257,7 +264,7 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
 
     data_addr += 100;
     for (uint32_t i = 1; i < data_segment[0]; i++) {
-        fprintf(output_fd, "%07u : ", data_addr++);
+        fprintf(output_fd, "%08u : ", data_addr++);
         WordToHex(output_fd, data_segment[i]);
         LogDebug("Wrote to data segment at %u!\n", data_addr-1);
     }
@@ -265,18 +272,23 @@ int SecondPass(char **input_files, size_t files_size, Label labels[MAX_LABELS], 
     LogVerbose("Text-Section begins at %u, ends at %u\n", 100, ICF -2);
     LogVerbose("Data-Segment begins at %u, ends at %u\n", ICF-1, data_addr-1);
     
-    // Re-check labels table
-    // entr without extr = warning / extr without entr = error
+    // Re-check symbol table
     for (size_t i = 0; i < *label_count; i++) {
-        if (labels[i].extr && !labels[i].extr_used) {
-            printf("(-) Error: Extern label %s was declared but never defined!\n", labels[i].name);
+        if (labels[i].extr && !labels[i].entr) {
+            printf("(*) Warning: Extern label %s was declared but never defined!\n", labels[i].name);
+            if (ASSEMBLER_FLAGS.gen_externals) {
+                for (uint8_t j = 0; j < labels[i].use_count; j++) {
+                    fprintf(output_fd, "X|%s|%08u\n", labels[i].name, labels[i].used_at[j]);
+                    LogDebug("Appended external usage at %u to output!\n", labels[i].used_at[j]);
+                }
+            }
         } else if (labels[i].entr) {
             LogDebug("Note: Entry label %s was declared%s\n",
                 labels[i].name,
                 labels[i].extr ? " and also marked extern" : "");
                 
             // Write entries to output
-            fprintf(output_fd, "%s : %07zu\n", labels[i].name, labels[i].address);
+            fprintf(output_fd, "E|%s|%08zu\n", labels[i].name, labels[i].address);
             LogDebug("Appended entry label at %zu to output!\n", labels[i].address);
         }
     }

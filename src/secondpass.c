@@ -2,8 +2,8 @@
 
 uint32_t curr_address = 100;
 
-int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *labels, size_t *label_count, uint32_t *data_segment, uint32_t icf, uint32_t dcf) {
-    if (!input_path || !output_path || !extern_path || !labels || !label_count) return STATUS_ERROR;
+int EncodeFile(char *input_path, char *output_path, Label *labels, size_t *label_count, uint32_t *data_segment, uint32_t icf, uint32_t dcf) {
+    if (!input_path || !output_path || !labels || !label_count) return STATUS_ERROR;
 
     FILE *input_fd = fopen(input_path, "r");
     if (!input_fd) {
@@ -20,17 +20,17 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
         return STATUS_ERROR;
     }
 
-    FILE *extern_fd = NULL;
-    if (ASSEMBLER_FLAGS.gen_externals) {
-        if (ASSEMBLER_FLAGS.append_to_ext) extern_fd = fopen(extern_path, "a");
-        else extern_fd = fopen(extern_path, "w");
-        if (!extern_fd) {
-            printf("(-) Failed to open extern file: %s\n", extern_path);
-            fclose(input_fd);
-            fclose(output_fd);
-            return STATUS_ERROR;
-        }
-    }
+    // FILE *extern_fd = NULL;
+    // if (ASSEMBLER_FLAGS.gen_externals) {
+    //     if (ASSEMBLER_FLAGS.append_to_ext) extern_fd = fopen(extern_path, "a");
+    //     else extern_fd = fopen(extern_path, "w");
+    //     if (!extern_fd) {
+    //         printf("(-) Failed to open extern file: %s\n", extern_path);
+    //         fclose(input_fd);
+    //         fclose(output_fd);
+    //         return STATUS_ERROR;
+    //     }
+    // }
 
     // FILE *entry_fd = NULL;
     // if (ASSEMBLER_FLAGS.append_to_ent) entry_fd = fopen(entry_path, "a");
@@ -76,24 +76,24 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
             continue;
         }
 
-        // // If is a .entry directive, add to .ent
-        // if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
-        //     if (ASSEMBLER_FLAGS.gen_entries) {
-        //         ptr += strlen(IENTRY);
-        //         while (isspace(*ptr)) ptr++;
+        // If is a .entry directive, add to .ent
+        if (strncmp(ptr, IENTRY, strlen(IENTRY)) == 0) {
+            // if (ASSEMBLER_FLAGS.gen_entries) {
+                ptr += strlen(IENTRY);
+                while (isspace(*ptr)) ptr++;
                 
-        //         Label *found = FindLabel(ptr, labels, label_count);
-        //         if (!found) {
-        //             printf("(-) Error: Found .entry directive but couldn't find label definition! <-- %s\n", ptr);
-        //             continue;
-        //         }
+                Label *found = FindLabel(ptr, labels, label_count);
+                if (!found) {
+                    printf("(-) Error: Found .entry directive but couldn't find label definition! <-- %s\n", ptr);
+                    continue;
 
-        //         ASSEMBLER_FLAGS.append_to_ent = true;
-        //         fprintf(entry_fd, "%s: %08zu\n", found->name, found->address);
-        //         LogDebug("Wrote entry directive to entries file!\n");
-        //     }
-        // continue;
-        // }
+                // ASSEMBLER_FLAGS.append_to_ent = true;
+                // fprintf(entry_fd, "%s: %08zu\n", found->name, found->address);
+                // LogDebug("Wrote entry directive to entries file!\n");
+            }
+            // continue;
+            // }
+        }
 
         // If it is a DS directive, add to data section
         if (strncmp(ptr, ISTRING, strlen(ISTRING)) == 0
@@ -132,7 +132,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
         // Emit first word
         fprintf(output_fd, "%08u : ", curr_address++);
         WordToHex(output_fd, word);
-        LogDebug("Wrote command word at %u to output.\n", curr_address);
+        LogDebug("Wrote command word at %u to output.\n", curr_address-1);
 
         // Tokenize the operands after command
         char *src = NULL, *dst = NULL;
@@ -168,7 +168,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 non_reg--;
                 is_last_word = (non_reg == 0);
 
-                uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, extern_fd, is_last_word); // Skip '&'
+                uint32_t rel = EncodeRel(src + 1, labels, label_count, curr_address, is_last_word); // Skip '&'
                 fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
@@ -181,7 +181,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 non_reg--;
                 is_last_word = (non_reg == 0);
 
-                uint32_t dir = EncodeDir(src, labels, label_count, curr_address, extern_fd, is_last_word);
+                uint32_t dir = EncodeDir(src, labels, label_count, curr_address, is_last_word);
                 fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, dir);
 
@@ -211,7 +211,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 non_reg--;
                 is_last_word = (non_reg == 0);
 
-                uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, extern_fd, is_last_word);
+                uint32_t rel = EncodeRel(dst + 1, labels, label_count, curr_address, is_last_word); // skip &
                 fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, rel);
 
@@ -224,7 +224,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
                 non_reg--;
                 is_last_word = (non_reg == 0);
                 
-                uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, extern_fd, is_last_word);
+                uint32_t dir = EncodeDir(dst, labels, label_count, curr_address, is_last_word);
                 fprintf(output_fd, "%08u : ", curr_address++);
                 WordToHex(output_fd, dir);
 
@@ -245,7 +245,7 @@ int EncodeFile(char *input_path, char *output_path, char *extern_path, Label *la
     // Cleanup
     fclose(input_fd);
     fclose(output_fd);
-    if (extern_fd) fclose(extern_fd);
+    // if (extern_fd) fclose(extern_fd);
     // if (entry_fd)  fclose(entry_fd);
 
     return curr_address-100;

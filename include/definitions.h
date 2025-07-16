@@ -21,7 +21,8 @@
 #define INPUT_FILE_EXTENSION_ALT   ".snasm"
 #define OBJECT_FILE_EXTENSION      ".sno"
 #define EXTENDED_FILE_EXTENSION    ".snm"
-#define EXTERNALS_FILE_EXTENSION   ".sne"
+#define EXTERNALS_FILE_EXTENSION   ".snext"
+#define ENTRIES_FILE_EXTENSION     ".snent"
 
 #define MAX_FILENAME_LENGTH        128
 #define MAX_EXTENSION_LENGTH       3
@@ -71,6 +72,7 @@
 
 /// SYMBOL TABLE ///
 #define MAX_LABELS           128
+#define MAX_EXTERN_USAGE     128
 #define MAX_LABEL_NAME        31
 
 /// OUTPUT FORMATTING ///
@@ -85,9 +87,5 @@
 #define NEG_DELIM      '-'        // For negative numbers
 #define MACRO_START    "mcro"     // Start of macro
 #define MACRO_END      "mcroend"  // End of macro
-
-/// MACHINE INFORMATION ///
-#define MEMORY_SIZE (1 << 21) // 2^21 words
-
 
 #endif // DEFINITIONS_H

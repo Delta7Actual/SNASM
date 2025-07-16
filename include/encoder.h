@@ -16,8 +16,8 @@
 int EncodeCommand(char *ops, const Command *comm, uint8_t modes, uint32_t *out);
 
 uint32_t EncodeImm(char *op, bool is_last);
-uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, FILE *extern_fd, bool is_last);
-uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, FILE *extern_fd, bool is_last);
+uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, bool is_last);
+uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, bool is_last);
 
 void WordToHex(FILE *file, uint32_t num);
 void LogU32AsBin(uint32_t num);

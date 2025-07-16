@@ -119,7 +119,7 @@ uint32_t EncodeImm(char *op, bool is_last) {
     return WORD(ret);
 }
 
-uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, FILE *extern_fd, bool is_last) {
+uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, bool is_last) {
     assert(op && label_count);
 
     Label *label = FindLabel(op, labels, label_count);
@@ -138,17 +138,24 @@ uint32_t EncodeDir(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     }
 
     // Check for extern
-    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) {
+    if (label->extr > 0) {
         label->extr_used = true;
-        fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
-        if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
+        if (label->use_count < MAX_EXTERN_USAGE) {
+            label->used_at[label->use_count] = curr_address;
+            label->use_count++;
+            LogDebug("Updated usage for extern label %s. Count: %u", label->name, label->use_count);
+        } else {
+            printf("(*) Too many references to extern label!\n");
+        }
+        // fprintf(extern_fd, "%s: %08u\n", label->name, curr_address);
+        // if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
     }
 
     if (!ASSEMBLER_FLAGS.legacy_24_bit && !is_last) ret |= M;
     return WORD(ret);
 }
 
-uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, FILE *extern_fd, bool is_last) {
+uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint32_t curr_address, bool is_last) {
     assert(op && label_count);
 
     Label *label = FindLabel(op, labels, label_count);
@@ -170,10 +177,17 @@ uint32_t EncodeRel(char *op, Label labels[MAX_LABELS], size_t *label_count, uint
     ret |= A;
 
     // Check for extern
-    if (label->extr > 0 && ASSEMBLER_FLAGS.gen_externals) {
+    if (label->extr > 0) {
         label->extr_used = true;
-        fprintf(extern_fd, "%s: %07u\n", label->name, curr_address);
-        if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
+        if (label->use_count < MAX_EXTERN_USAGE) {
+            label->used_at[label->use_count] = curr_address;
+            label->use_count++;
+            LogDebug("Updated usage for extern label %s. Count: %u", label->name, label->use_count);
+        } else {
+            printf("(*) Too many references to extern label!\n");
+        }
+        // fprintf(extern_fd, "%s: %08u\n", label->name, curr_address);
+        // if (!ASSEMBLER_FLAGS.append_to_ext) ASSEMBLER_FLAGS.append_to_ext = true;
     }
 
     if (!ASSEMBLER_FLAGS.legacy_24_bit && !is_last) ret |= M;

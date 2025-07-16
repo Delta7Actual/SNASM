@@ -11,12 +11,13 @@
 typedef struct flags_s {
     bool start_exists;
     bool show_symbols;
+    // bool gen_entries;
     bool gen_externals;
     const char *output_file;
     bool entry_point_exists;
     bool append_to_out;
-    bool append_to_ent;
-    bool append_to_ext;
+    // bool append_to_ent;
+    // bool append_to_ext;
     bool legacy_24_bit;
 } Flags;
 

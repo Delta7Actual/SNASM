@@ -10,8 +10,8 @@
 
 typedef struct s_command {
     const char *name;
-    uint8_t ident;
-    uint8_t opcount;
+    uint16_t   ident;
+    uint8_t  opcount;
     uint8_t addmodes;
 } Command;
 
@@ -27,9 +27,9 @@ typedef struct s_command {
 #define DST_REL (1<<6)
 #define DST_REG (1<<7)
 
-#define S_OF(opcode, funct) (((opcode & 0xF) << 4) | (funct & 0xF))
-#define G_OP(code) ((code >> 4) & 0xF)
-#define G_FT(code) (code & 0xF)
+#define S_OF(opcode, funct) (((opcode & 0x3F) << 6) | (funct & 0x3F))
+#define G_OP(code) ((code >> 6) & 0x3F)
+#define G_FT(code) (code & 0x3F)
 
 // Command table
 static const Command commands[COMMAND_COUNT] = {
