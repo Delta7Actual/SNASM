@@ -9,7 +9,8 @@ void PrintHelp() {
     printf("  -d, --debug          Enable debug-level logging\n");
     printf("  -q, --quiet          Suppress all logging\n");
     printf("  -s, --symbols        Output symbol table\n");
-    printf("  -x, --externals      Output external references\n");
+    printf("  -x, --externals      Generate external references\n");
+    printf("  -e  --entries        Generate entry references");
     printf("  -o, --output <file>  Specify output file\n");
     printf("  -l  --legacy-24      Use Legacy encoding for a 24-bit architecture\n");
     printf("      --version        Show assembler version\n");
@@ -44,6 +45,8 @@ int ParseFlags(int argc, char **argv, char ***input_files, int *input_count) {
             ASSEMBLER_FLAGS.show_symbols = true;
         } else if (strcmp(arg, "-x") == 0 || strcmp(arg, "--externals") == 0) {
             ASSEMBLER_FLAGS.gen_externals = true;
+        } else if (strcmp(arg, "-e") == 0 || strcmp(arg, "--entries") == 0) {
+            ASSEMBLER_FLAGS.gen_entries = true;
         } else if (strcmp(arg, "-l") == 0 || strcmp(arg, "--legacy-24") == 0) {
             ASSEMBLER_FLAGS.legacy_24_bit = true;
         } else if (strcmp(arg, "--help") == 0) {
